@@ -31,13 +31,15 @@ MedicationCatalogue.init(
       type: DataTypes.BIGINT.UNSIGNED,
       allowNull: true,
     },
-    _lft: {
+    lft: {
       type: DataTypes.INTEGER,
-      allowNull: true,
+      allowNull: false, // Không cho phép NULL
+      defaultValue: 0, // Giá trị mặc định
     },
-    _rgt: {
+    rgt: {
       type: DataTypes.INTEGER,
-      allowNull: true,
+      allowNull: false, // Không cho phép NULL
+      defaultValue: 0, // Giá trị mặc định
     },
   },
   {

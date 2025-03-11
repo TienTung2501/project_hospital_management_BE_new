@@ -20,12 +20,12 @@ class MedicationCatalogueController {
             }
             if (exclude_id) {
                 whereCondition.id = { [Op.ne]: Number(exclude_id) };
-              }
+            }
             const options = {
                 where: whereCondition,
                 limit,
                 offset,
-                order: [['_lft', 'ASC']]
+                order: [['name', 'ASC'], ['lft', 'ASC']]
             };
 
             const medicationCatalogues = await medicationCatalogueService.paginate(options)
