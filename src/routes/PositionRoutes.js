@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const PositionController = require('../controllers/PositionController');
+const { index, show, create, update, remove } = require('../controllers/PositionController');
 const { validatePosition } = require('../validators/PositionValidator');
 
-router.get('/', PositionController.index);
-router.get('/:id', PositionController.show);
-router.post('/', validatePosition, PositionController.create);
-router.patch('/:id', validatePosition, PositionController.update);
-router.delete('/:id', PositionController.delete);
+router.get('/', index);
+router.get('/:id', show);
+router.post('/create', validatePosition, create);
+router.patch('/:id', validatePosition, update);
+router.delete('/:id', remove);
 
 module.exports = router;

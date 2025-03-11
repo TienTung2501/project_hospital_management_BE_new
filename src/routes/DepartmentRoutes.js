@@ -5,7 +5,7 @@ const validateDepartment = require('../validators/DepartmentValidator');
 const router = express.Router();
 router.get('/', index);
 router.get('/:id', show);
-router.post('/', validateDepartment, create);
+router.post('/create', validateDepartment, create);
 router.patch('/:id', validateDepartment, update);
 router.delete('/:id', remove);
 

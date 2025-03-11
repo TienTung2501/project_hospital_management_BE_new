@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.get("/", ServiceController.index);
 router.get("/:id", ServiceController.show);
-router.post("/", validateService, ServiceController.create);
+router.post("/create", validateService, ServiceController.create);
 router.patch("/:id", validateService, ServiceController.update);
 router.delete("/:id", ServiceController.delete);
 

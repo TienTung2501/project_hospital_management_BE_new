@@ -42,20 +42,12 @@ User.init({
     allowNull: true
   },
   position_id: {
-    type: DataTypes.BIGINT,
+    type: DataTypes.BIGINT.UNSIGNED,
     allowNull: false,
-    references: {
-      model: 'Positions',
-      key: 'id'
-    }
   },
   department_id: {
     type: DataTypes.BIGINT.UNSIGNED,
     allowNull: false,
-    references: {
-      model: 'Departments',
-      key: 'id'
-    }
   }
 }, {
   sequelize,  // Truyền instance sequelize vào

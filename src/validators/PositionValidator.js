@@ -1,7 +1,7 @@
 const { body } = require('express-validator');
 
 const validatePosition = [
-  body('name').notEmpty().withMessage('Tên chức danh không được để trống'),
+    body('name').notEmpty().withMessage('Name is required'),
 ];
 
 module.exports = { validatePosition };

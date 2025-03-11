@@ -1,13 +1,13 @@
 const express = require("express");
-const RoomCatalogueController = require("../controllers/RoomCatalogueController");
+const {index,show,create,update,remove} = require("../controllers/RoomCatalogueController");
 const { storeRoomCatalogueValidator, updateRoomCatalogueValidator } = require("../validators/RoomCatalogueValidator");
 
 const router = express.Router();
 
-router.get("/", RoomCatalogueController.index);
-router.get("/:id", RoomCatalogueController.show);
-router.post("/", storeRoomCatalogueValidator, RoomCatalogueController.create);
-router.patch("/:id", updateRoomCatalogueValidator, RoomCatalogueController.update);
-router.delete("/:id", RoomCatalogueController.delete);
+router.get("/", index);
+router.get("/:id", show);
+router.post("/create", storeRoomCatalogueValidator, create);
+router.patch("/:id", updateRoomCatalogueValidator, update);
+router.delete("/:id", remove);
 
 module.exports = router;

@@ -9,7 +9,6 @@ Room.init(
     code: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true,
     },
     status: {
       type: DataTypes.INTEGER,

@@ -4,8 +4,8 @@ const MedicationCatalogueController = require('../controllers/MedicationCatalogu
 
 router.get('/', MedicationCatalogueController.index);
 router.get('/:id', MedicationCatalogueController.show);
-router.post('/', MedicationCatalogueController.create);
+router.post('/create', MedicationCatalogueController.create);
 router.patch('/:id', MedicationCatalogueController.update);
-router.delete('/:id', MedicationCatalogueController.delete);
+router.delete('/:id', MedicationCatalogueController.remove);
 
 module.exports = router;

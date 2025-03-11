@@ -7,7 +7,7 @@ Permission.init(
   {
     id: { type: DataTypes.BIGINT.UNSIGNED, autoIncrement: true, primaryKey: true },
     name: { type: DataTypes.STRING, allowNull: false },
-    keyword: { type: DataTypes.STRING, allowNull: false, unique: true },
+    keyword: { type: DataTypes.STRING, allowNull: false},
   },
   {
     sequelize,

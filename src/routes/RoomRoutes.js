@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.get("/", RoomController.index);
 router.get("/:id", RoomController.show);
-router.post("/", validateRoomCreate, RoomController.create);
+router.post("/create", validateRoomCreate, RoomController.create);
 router.patch("/:id", validateRoomUpdate, RoomController.update);
 router.delete("/:id", RoomController.delete);
 

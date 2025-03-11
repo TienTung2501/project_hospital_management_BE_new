@@ -1,34 +1,135 @@
 const DepartmentService = require('../services/DepartmentService');
 const departmentService = new DepartmentService();
+const { Op } = require("sequelize");
 
-exports.index = async (req, res) => {
-    const { keyword, status, limit } = req.query;
-    const options = { where: {}, limit: Number(limit) || 10 };
-    if (status) options.where.status = status;
-    if (keyword) options.where.name = { [Op.like]: `%${keyword}%` };
-    const departments = await departmentService.paginate(options);
-    res.json({ status: 200, message: 'success', data: departments });
-};
+class DepartmentController {
+    async index(req, res) {
+        try {
+            const { keyword, status,exclude_id } = req.query;
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 20;
+            const offset = (page - 1) * limit;
 
-exports.show = async (req, res) => {
-    const department = await departmentService.getById(Number(req.params.id));
-    if (department) res.json({ status: 200, message: 'success', data: department });
-    else res.status(404).json({ status: 404, message: 'Not Found' });
-};
+            const whereCondition = {};
+            if (status) whereCondition.status = status;
+            if (keyword) {
+                whereCondition[Op.or] = [
+                    { name: { [Op.like]: `%${keyword}%` } },
+                    { description: { [Op.like]: `%${keyword}%` } },
+                ];
+            }
+            if (exclude_id) {
+                whereCondition.id = { [Op.ne]: Number(exclude_id) };
+            }
+            const options = {
+                where: whereCondition,
+                limit,
+                offset,
+                order: [['id', 'DESC']]
+            };
 
-exports.create = async (req, res) => {
-    const department = await departmentService.create(req.body);
-    res.status(201).json({ status: 201, message: 'created', data: department });
-};
+            const departments = await departmentService.paginate(options)
+            const totalPages = Math.ceil(departments.count / limit);
 
-exports.update = async (req, res) => {
-    const department = await departmentService.update(Number(req.params.id), req.body);
-    if (department) res.json({ status: 200, message: 'success', data: department });
-    else res.status(404).json({ status: 404, message: 'Not Found' });
-};
+            if (departments.rows.length > 0) {
+                return res.status(200).json({
+                    status: 200,
+                    message: 'Success',
+                    data: {
+                        data:departments.rows,
+                        current_page: page,
+                        first_page_url: `${req.protocol}://${req.get("host")}${req.baseUrl}?page=1`,
+                        from: offset + 1,
+                        last_page: totalPages,
+                        last_page_url: `${req.protocol}://${req.get("host")}${req.baseUrl}?page=${totalPages}`,
+                        next_page_url: page < totalPages ? `${req.protocol}://${req.get("host")}${req.baseUrl}?page=${page + 1}` : null,
+                        prev_page_url: page > 1 ? `${req.protocol}://${req.get("host")}${req.baseUrl}?page=${page - 1}` : null,
+                        path: `${req.protocol}://${req.get("host")}${req.baseUrl}`,
+                        per_page: limit,
+                        to: offset + departments.rows.length,
+                        total: departments.count,
+                    }
+                });
+            } 
+            else {
+                return res.status(204).json({
+                    status: 204,
+                    message: 'No Data',
+                });
+              }
+        } 
+        catch (error) {
+            console.error('Error in index:', error);
+            return res.status(500).json({ status: 500, message: 'Server Error' });
+        }
+    }
 
-exports.remove = async (req, res) => {
-    const success = await departmentService.delete(Number(req.params.id));
-    if (success) res.status(204).send();
-    else res.status(404).json({ status: 404, message: 'Not Found' });
-};
+    async show(req, res) {
+        try {
+            const { id } = req.params;
+            const department = await departmentService.getById(id);
+
+            if (!department) {
+                return res.status(404).json({ status: 404, message: 'Not Found' });
+            }
+
+            return res.status(200).json({
+                status: 200,
+                message: 'Success',
+                data: { data: department }
+            });
+        } catch (error) {
+            console.error('Error in show:', error);
+            return res.status(500).json({ status: 500, message: 'Server Error' });
+        }
+    }
+
+    async create(req, res) {
+        try {
+            const department = await departmentService.create(req.body);
+            return res.status(200).json({
+                status: 200,
+                message: 'Created',
+                data: { data: department }
+            });
+        } catch (error) {
+            console.error('Error in create:', error);
+            return res.status(500).json({ status: 500, message: 'Server Error' });
+        }
+    }
+
+    async update(req, res) {
+        try {
+            const { id } = req.params;
+            const department = await departmentService.getById(id);
+            if (!department) {
+                return res.status(404).json({ status: 404, message: 'Not Found' });
+            }
+            const updatedDepartment = await departmentService.update(id, req.body);
+            return res.status(200).json({
+                status: 200,
+                message: 'Success',
+                data: { data: updatedDepartment }
+            });
+        } catch (error) {
+            console.error('Error in update:', error);
+            return res.status(500).json({ status: 500, message: 'Server Error' });
+        }
+    }
+
+    async remove(req, res) {
+        try {
+            const { id } = req.params;
+            const success = await departmentService.delete(id);
+            if (!success) {
+                return res.status(404).json({ status: 404, message: 'Not Found' });
+            }
+            return res.status(200).send();
+        } catch (error) {
+            console.error('Error in delete:', error);
+            return res.status(500).json({ status: 500, message: 'Server Error' });
+        }
+    }
+}
+
+module.exports = new DepartmentController();

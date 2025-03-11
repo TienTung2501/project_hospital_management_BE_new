@@ -7,7 +7,7 @@ class RoomCatalogue extends Model {}
 RoomCatalogue.init(
   {
     id: { type: DataTypes.BIGINT.UNSIGNED, autoIncrement: true, primaryKey: true },
-    keyword: { type: DataTypes.STRING, allowNull: false, unique: true },
+    keyword: { type: DataTypes.STRING, allowNull: false},
     name: { type: DataTypes.STRING, allowNull: false },
     description: { type: DataTypes.TEXT, allowNull: true },
     status: { type: DataTypes.INTEGER, defaultValue: 1 },

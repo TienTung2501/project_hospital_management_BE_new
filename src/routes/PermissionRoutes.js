@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.get("/", index);
 router.get("/:id", show);
-router.post("/", storePermissionValidator, create);
+router.post("/create", storePermissionValidator, create);
 router.patch("/:id", updatePermissionValidator, update);
 router.delete("/:id", remove);
 

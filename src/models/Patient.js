@@ -25,7 +25,6 @@ Patient.init(
     cccd_number: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true,
     },
     health_insurance_code: {
       type: DataTypes.STRING,
