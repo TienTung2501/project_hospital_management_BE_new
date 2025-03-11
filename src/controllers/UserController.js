@@ -1,10 +1,10 @@
 const UserService = require('../services/UserService');
-const { Department, Position, Room } = require("../models");
+const { Department, Position, Room,User } = require("../models");
 const { Op } = require("sequelize");
 class UserController {
     async index(req, res) {
         try {
-            const { keyword, status } = req.query;
+            const { keyword, status,exclude_id } = req.query;
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 20;
             const offset = (page - 1) * limit;
@@ -20,21 +20,25 @@ class UserController {
                     { cccd: { [Op.like]: `%${keyword}%` } },
                 ];
             }
-            
+            if (exclude_id) {
+                whereCondition.id = { [Op.ne]: Number(exclude_id) };
+            }
             const options = {
                 where: whereCondition,
                 limit,
                 offset,
                 order: [['id', 'DESC']],
-                include: [
+                relations:[
                     { model: Department, as: 'departments' },
-                    { model: Position, as: 'positions' }, 
+                    { model: Position, as: 'positions' },
                     { model: Room, as: 'rooms' }
+
                 ]
+
             };
             
             const users = await UserService.paginate(options);
-            
+           
             const totalPages = Math.ceil(users.count / limit);
             if (users.rows.length > 0) {
                 return res.status(200).json({

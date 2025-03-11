@@ -1,18 +1,43 @@
 // services/BaseService.js
-const { Op } = require("sequelize");
-
+const { Sequelize, Op } = require("sequelize");
+const { formatRelations } = require("../utils/formatRelations");
 class BaseService {
     constructor(model) {
         this.model = model;
     }
-
+ 
+    
     async getAll() {
         return this.model.findAll();
     }
 
-    async getById(id, options = {}) {
-        return this.model.findByPk(id, options);
+    async getById(id, { count = [], relations = [] } = {}) {
+        const attributes = { include: [] };
+    
+        // Thêm đếm số lượng (count)
+        const safeCount = Array.isArray(count) ? count : [];
+        safeCount.forEach(relation => {
+            attributes.include.push([
+                Sequelize.literal(`(
+                    SELECT COUNT(*) FROM ${relation}
+                    WHERE ${relation}.room_id = ${this.model.name}.id
+                )`),
+                `${relation}_count`
+            ]);
+        });
+        
+    
+        // Nếu không có count, bỏ `attributes`
+        const queryOptions = {
+            include: relations // Dùng hàm format đã làm
+        };
+        if (attributes.include.length > 0) {
+            queryOptions.attributes = attributes;
+        }
+    
+        return this.model.findByPk(id, queryOptions);
     }
+    
 
     async getHistory(id, relations = {}) {
         const include = Object.keys(relations).map(key => {
@@ -27,16 +52,38 @@ class BaseService {
 
 
 
-    async paginate({ where, include, order, limit,offset }) {
+    async paginate({ where, relations = [], order, limit, offset, count = [] }) {
         try {
-            // Truy vấn dữ liệu với phân trang
-            return this.model.findAndCountAll({
+            const attributes = { include: [] };
+    
+            // Thêm các thuộc tính đếm (count)
+            const safeCount = Array.isArray(count) ? count : [];
+                safeCount.forEach(relation => {
+                    attributes.include.push([
+                        Sequelize.literal(`(
+                            SELECT COUNT(*) FROM ${relation}
+                            WHERE ${relation}.room_id = ${this.model.name}.id
+                        )`),
+                        `${relation}_count`
+                    ]);
+                });
+
+    
+            // Xây dựng query
+            const queryOptions = {
                 where,
-                include,
+                include: relations, // Dùng hàm format để ánh xạ models đúng
                 order,
-                offset:parseInt(offset),
+                offset: parseInt(offset),
                 limit: parseInt(limit) || 20,
-            });
+            };
+    
+            // Chỉ thêm `attributes` nếu có count
+            if (attributes.include.length > 0) {
+                queryOptions.attributes = attributes;
+            }
+    
+            return await this.model.findAndCountAll(queryOptions);
         } catch (error) {
             console.error("Error in paginate:", error);
             throw new Error("Database query failed");
@@ -62,6 +109,7 @@ class BaseService {
         }
         return false;
     }
+    
 }
 
 module.exports = BaseService;

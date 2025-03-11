@@ -15,8 +15,8 @@ const MedicationCatalogue = require("../models/MedicationCatalogue");
 const Patient = require("../models/Patient");
 
 // 🔹 Định nghĩa bảng trung gian (đặt `tableName` theo số nhiều)
-const UserRoom = sequelize.define("user_rooms", {}, { timestamps: false, tableName: "user_rooms" });
-const UserPermission = sequelize.define("user_permissions", {}, { timestamps: false, tableName: "user_permissions" });
+const UserRoom = sequelize.define("user_room", {}, { timestamps: false, tableName: "user_room" });
+const UserPermission = sequelize.define("user_permission", {}, { timestamps: false, tableName: "user_permission" });
 const MedicalRecordMedication = sequelize.define("medical_record_medications", {}, { timestamps: false, tableName: "medical_record_medications" });
 const MedicalRecordServiceRelation = sequelize.define("medical_record_service_relations", {}, { timestamps: false, tableName: "medical_record_service_relations" });
 
@@ -28,7 +28,7 @@ Room.belongsToMany(User, { through: UserRoom, foreignKey: "room_id", otherKey: "
 
 // 🔹 RoomCatalogue
 RoomCatalogue.hasMany(Room, { foreignKey: "room_catalogue_id", as: "rooms" });
-
+RoomCatalogue.hasMany(Service, { foreignKey: "room_catalogue_id", as: "services" });
 // 🔹 Bed
 Bed.belongsTo(Room, { foreignKey: "room_id", as: "rooms" });
 Bed.belongsTo(Patient, { foreignKey: "patient_id", as: "patients" });
@@ -41,7 +41,7 @@ User.belongsToMany(Permission, { through: UserPermission, foreignKey: "user_id",
 
 // 🔹 Service
 Service.belongsTo(ServiceCatalogue, { foreignKey: "service_catalogue_id", as: "service_catalogues" });
-
+Service.belongsTo(RoomCatalogue, { foreignKey: "room_catalogue_id", as: "room_catalogues" });
 // 🔹 MedicalRecord
 MedicalRecord.belongsTo(Patient, { foreignKey: "patient_id", as: "patients" });
 MedicalRecord.belongsToMany(Service, { through: MedicalRecordServiceRelation, foreignKey: "medical_record_id", otherKey: "service_id", as: "services" });
