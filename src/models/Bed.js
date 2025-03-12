@@ -14,8 +14,8 @@ Bed.init(
       allowNull: true,
     },
     status: {
-      type: DataTypes.STRING,
-      allowNull: true,
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
     },
     room_id: {
       type: DataTypes.BIGINT.UNSIGNED,

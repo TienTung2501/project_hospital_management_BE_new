@@ -39,16 +39,31 @@ class BaseService {
     }
     
 
-    async getHistory(id, relations = {}) {
-        const include = Object.keys(relations).map(key => {
-            return {
-                association: key,
-                include: relations[key].map(subRelation => ({ association: subRelation })),
-                where: key === 'medicalRecords' ? { diagnosis: { [Op.ne]: null } } : undefined
-            };
-        });
-        return this.model.findByPk(id, { include });
-    }
+    async getHistory(id, relations = []) {
+        try {
+          const query = {
+            where: { id },
+            include: relations.map((relation) => {
+              if (relation.as === "medical_records") {
+                return {
+                  ...relation,
+                  where: { diagnosis: { [Op.ne]: null } }, // Thêm điều kiện where nếu là medicalRecords
+                  required: false, // Đảm bảo không loại bỏ bệnh nhân nếu không có medicalRecords
+                };
+              }
+              return relation;
+            }),
+          };
+    
+          const record = await this.model.findOne(query);
+    
+          return record;
+        } catch (error) {
+          console.error("Error in getHistory:", error);
+          throw new Error("Lỗi khi lấy lịch sử");
+        }
+      }
+    
 
 
 

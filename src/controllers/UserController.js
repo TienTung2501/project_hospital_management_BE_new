@@ -1,5 +1,5 @@
 const UserService = require('../services/UserService');
-const { Department, Position, Room,User } = require("../models");
+const { Department, Position, Room } = require("../models");
 const { Op } = require("sequelize");
 class UserController {
     async index(req, res) {
@@ -141,7 +141,7 @@ class UserController {
             if (!deleted) {
                 return res.status(404).json({ status: 404, message: 'Error' });
             }
-            return res.status(204).send();
+            return res.status(200).send();
         } catch (error) {
             console.error('Error in delete:', error);
             return res.status(500).json({ status: 500, message: 'Server Error' });

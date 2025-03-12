@@ -8,7 +8,7 @@ class RoomController {
         try {
             const { keyword, status,exclude_id } = req.query;
             const page = parseInt(req.query.page) || 1;
-            const limit = parseInt(req.query.limit) ;
+            const limit = parseInt(req.query.limit) |20;
             const offset = (page - 1) * limit;
 
             const whereCondition = {};

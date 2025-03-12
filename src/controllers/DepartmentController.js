@@ -15,7 +15,7 @@ class DepartmentController {
             if (keyword) {
                 whereCondition[Op.or] = [
                     { name: { [Op.like]: `%${keyword}%` } },
-                    { description: { [Op.like]: `%${keyword}%` } },
+                    { keyword: { [Op.like]: `%${keyword}%` } },
                 ];
             }
             if (exclude_id) {

@@ -66,19 +66,19 @@ class ServiceController {
     async show(req, res) {
         try {
             const { id } = req.params;
-            const room = await serviceService.getById(id,{relations:[
+            const service = await serviceService.getById(id,{relations:[
                 { model: ServiceCatalogue, as: 'service_catalogues' },
                 { model: RoomCatalogue, as: 'room_catalogues' },
             ]});
 
-            if (!room) {
+            if (!service) {
                 return res.status(404).json({ status: 404, message: 'Not Found' });
             }
 
             return res.status(200).json({
                 status: 200,
                 message: 'Success',
-                data: { data: room }
+                data: { data: service }
             });
         } catch (error) {
             console.error('Error in show:', error);
@@ -88,11 +88,11 @@ class ServiceController {
 
     async create(req, res) {
         try {
-            const room = await serviceService.create(req.body);
+            const service = await serviceService.create(req.body);
             return res.status(200).json({
                 status: 200,
                 message: 'Created',
-                data: { data: room }
+                data: { data: service }
             });
         } catch (error) {
             console.error('Error in create:', error);
@@ -103,8 +103,8 @@ class ServiceController {
     async update(req, res) {
         try {
             const { id } = req.params;
-            const room = await serviceService.getById(id);
-            if (!room) {
+            const service = await serviceService.getById(id);
+            if (!service) {
                 return res.status(404).json({ status: 404, message: 'Not Found' });
             }
             const updatedService = await serviceService.update(id, req.body);

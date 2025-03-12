@@ -7,8 +7,8 @@ const router = express.Router();
 
 router.get('/', bedController.index);
 router.get('/:id', bedController.show);
-router.post('/', storeBedValidator, bedController.create);
-router.put('/:id', updateBedValidator, bedController.update);
-router.delete('/:id', bedController.delete);
+router.post('/create', storeBedValidator, bedController.create);
+router.patch('/:id', updateBedValidator, bedController.update);
+router.delete('/:id', bedController.remove);
 
 module.exports = router;

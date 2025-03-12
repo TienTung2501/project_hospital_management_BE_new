@@ -16,6 +16,7 @@ const validateUser = [
     (req, res, next) => {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
+            console.log(errors)
             return res.status(400).json({ errors: errors.array() });
         }
         next();
@@ -28,13 +29,14 @@ const validateUserUpdate = [
     body('email')
         .notEmpty().withMessage('Email không được để trống')
         .isEmail().withMessage('Email không đúng định dạng'),
-    body('position_id').isInt({ gt: 0 }).withMessage('Bạn cần chọn chức danh cho nhân viên'),
-    body('department_id').isInt({ gt: 0 }).withMessage('Bạn cần chọn khoa cho nhân viên'),
+    // body('position_id').isInt({ gt: 0 }).withMessage('Bạn cần chọn chức danh cho nhân viên'),
+    // body('department_id').isInt({ gt: 0 }).withMessage('Bạn cần chọn khoa cho nhân viên'),
     body('address').notEmpty().withMessage('Địa chỉ không được để trống'),
 
     (req, res, next) => {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
+            console.log(errors)
             return res.status(400).json({ errors: errors.array() });
         }
         next();

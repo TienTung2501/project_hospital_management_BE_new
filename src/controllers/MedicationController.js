@@ -1,94 +1,138 @@
-const MedicationService = require("../services/MedicationService");
-const { validationResult } = require("express-validator");
+const { MedicationCatalogue } = require('../models');
+const medicationService = require('../services/MedicationService');
+const { Op } = require("sequelize");
 
-class MedicationController {
-  async index(req, res) {
-    try {
-      const { keyword, status, limit = 10 } = req.query;
-      const condition = [];
-      if (status !== undefined) {
-        condition.push({ status });
-      }
+class MedicaitonController {
+    async index(req, res) {
+        try {
+            const { keyword, status,exclude_id } = req.query;
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) ||20;
+            const offset = (page - 1) * limit;
 
-      const medications = await MedicationService.paginate(
-        ["id", "name", "medication_catalogue_id", "price", "measure", "measure_count", "description", "status"],
-        condition,
-        ["medicationCatalogue"],
-        ["name", "description"],
-        keyword,
-        [["id", "DESC"]],
-        limit
-      );
+            const whereCondition = {};
+            if (status) whereCondition.status = status;
+            if (keyword) {
+                whereCondition[Op.or] = [
+                    { name: { [Op.like]: `%${keyword}%` } },
+                    { description: { [Op.like]: `%${keyword}%` } },
+                ];
+            }
+            if (exclude_id) {
+                whereCondition.id = { [Op.ne]: Number(exclude_id) };
+            }
+            const options = {
+                where: whereCondition,
+                limit,
+                offset,
+                order: [['id', 'DESC']],
+                relations:[
+                  { model: MedicationCatalogue, as: 'medication_catalogues' }
+              ]
+            };
 
-      if (medications.length) {
-        return res.status(200).json({ status: 200, message: "success", data: medications });
-      }
+            const medications = await medicationService.paginate(options)
+            const totalPages = Math.ceil(medications.count / limit);
 
-      return res.status(204).json({ status: 204, message: "No Data", data: [] });
-    } catch (error) {
-      return res.status(500).json({ status: 500, message: "Server error", error: error.message });
+            if (medications.rows.length > 0) {
+                return res.status(200).json({
+                    status: 200,
+                    message: 'Success',
+                    data: {
+                        data:medications.rows,
+                        current_page: page,
+                        first_page_url: `${req.protocol}://${req.get("host")}${req.baseUrl}?page=1`,
+                        from: offset + 1,
+                        last_page: totalPages,
+                        last_page_url: `${req.protocol}://${req.get("host")}${req.baseUrl}?page=${totalPages}`,
+                        next_page_url: page < totalPages ? `${req.protocol}://${req.get("host")}${req.baseUrl}?page=${page + 1}` : null,
+                        prev_page_url: page > 1 ? `${req.protocol}://${req.get("host")}${req.baseUrl}?page=${page - 1}` : null,
+                        path: `${req.protocol}://${req.get("host")}${req.baseUrl}`,
+                        per_page: limit,
+                        to: offset + medications.rows.length,
+                        total: medications.count,
+                    }
+                });
+            } 
+            else {
+                return res.status(204).json({
+                    status: 204,
+                    message: 'No Data',
+                });
+              }
+        } 
+        catch (error) {
+            console.error('Error in index:', error);
+            return res.status(500).json({ status: 500, message: 'Server Error' });
+        }
     }
-  }
 
-  async show(req, res) {
-    try {
-      const { id } = req.params;
-      const medication = await MedicationService.getById(id);
-      if (medication) {
-        return res.status(200).json({ status: 200, message: "success", data: medication });
-      }
-      return res.status(404).json({ status: 404, message: "Not Found" });
-    } catch (error) {
-      return res.status(500).json({ status: 500, message: "Server error", error: error.message });
-    }
-  }
+    async show(req, res) {
+        try {
+            const { id } = req.params;
+            const medication = await medicationService.getById(id);
 
-  async create(req, res) {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ status: 400, errors: errors.array() });
-    }
+            if (!medication) {
+                return res.status(404).json({ status: 404, message: 'Not Found' });
+            }
 
-    try {
-      const medication = await MedicationService.create(req.body);
-      return res.status(201).json({ status: 201, message: "created", data: medication });
-    } catch (error) {
-      return res.status(500).json({ status: 500, message: "Server error", error: error.message });
-    }
-  }
-
-  async update(req, res) {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ status: 400, errors: errors.array() });
+            return res.status(200).json({
+                status: 200,
+                message: 'Success',
+                data: { data: medication }
+            });
+        } catch (error) {
+            console.error('Error in show:', error);
+            return res.status(500).json({ status: 500, message: 'Server Error' });
+        }
     }
 
-    try {
-      const { id } = req.params;
-      const medication = await MedicationService.getById(id);
-      if (!medication) {
-        return res.status(404).json({ status: 404, message: "Not Found" });
-      }
-
-      const updatedMedication = await MedicationService.update(id, req.body);
-      return res.status(200).json({ status: 200, message: "success", data: updatedMedication });
-    } catch (error) {
-      return res.status(500).json({ status: 500, message: "Server error", error: error.message });
+    async create(req, res) {
+        try {
+            const medication = await medicationService.create(req.body);
+            return res.status(200).json({
+                status: 200,
+                message: 'Created',
+                data: { data: medication }
+            });
+        } catch (error) {
+            console.error('Error in create:', error);
+            return res.status(500).json({ status: 500, message: 'Server Error' });
+        }
     }
-  }
 
-  async delete(req, res) {
-    try {
-      const { id } = req.params;
-      const deleted = await MedicationService.delete(id);
-      if (deleted) {
-        return res.status(204).json({ status: 204, message: "success" });
-      }
-      return res.status(404).json({ status: 404, message: "error" });
-    } catch (error) {
-      return res.status(500).json({ status: 500, message: "Server error", error: error.message });
+    async update(req, res) {
+        try {
+            const { id } = req.params;
+            const medication = await medicationService.getById(id);
+            if (!medication) {
+                return res.status(404).json({ status: 404, message: 'Not Found' });
+            }
+            const updatedMedication = await medicationService.update(id, req.body);
+            return res.status(200).json({
+                status: 200,
+                message: 'Success',
+                data: { data: updatedMedication }
+            });
+        } catch (error) {
+            console.error('Error in update:', error);
+            return res.status(500).json({ status: 500, message: 'Server Error' });
+        }
     }
-  }
+
+    async remove(req, res) {
+        try {
+            const { id } = req.params;
+            const success = await medicationService.delete(id);
+            if (!success) {
+                return res.status(404).json({ status: 404, message: 'Not Found' });
+            }
+            return res.status(200).send();
+        } catch (error) {
+            console.error('Error in delete:', error);
+            return res.status(500).json({ status: 500, message: 'Server Error' });
+        }
+    }
 }
 
-module.exports = new MedicationController();
+module.exports = new MedicaitonController();

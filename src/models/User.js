@@ -30,12 +30,12 @@ User.init({
     allowNull: false
   },
   gender: {
-    type: DataTypes.STRING,
+    type: DataTypes.INTEGER,
     allowNull: false
   },
   status: {
-    type: DataTypes.STRING,
-    allowNull: true
+    type: DataTypes.INTEGER,
+    defaultValue: 1,
   },
   certificate: {
     type: DataTypes.STRING,

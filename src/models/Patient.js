@@ -35,7 +35,7 @@ Patient.init(
       allowNull: true,
     },
     gender: {
-      type: DataTypes.STRING,
+      type: DataTypes.INTEGER,
       allowNull: true,
     },
     description: {

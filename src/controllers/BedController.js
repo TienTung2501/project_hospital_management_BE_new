@@ -1,86 +1,142 @@
-const bedService = require('../services/bedService');
-const { validationResult } = require('express-validator');
+const { Room, Patient } = require('../models');
+const bedService = require('../services/BedService');
+const { Op } = require("sequelize");
 
-const getFields = () => [
-    'id', 'code', 'price', 'status', 'room_id', 'patient_id', 'createdAt', 'updatedAt'
-];
+class BedController {
+    async index(req, res) {
+        try {
+            const { keyword, status,exclude_id } = req.query;
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) |20;
+            const offset = (page - 1) * limit;
 
-exports.index = async (req, res) => {
-    try {
-        const { keyword, status, limit = 10 } = req.query;
-        const condition = status ? { status } : {};
-        const beds = await bedService.paginate(getFields(), condition, ['room', 'patient'], ['code'], keyword, [['id', 'DESC']], limit);
+            const whereCondition = {};
+            if (status) whereCondition.status = status;
+            if (keyword) {
+                whereCondition[Op.or] = [
+                    { code: { [Op.like]: `%${keyword}%` } },
+                ];
+            }
+            if (exclude_id) {
+                whereCondition.id = { [Op.ne]: Number(exclude_id) };
+            }
+            const options = {
+                where: whereCondition,
+                limit,
+                offset,
+                order: [['id', 'DESC']],
+                relations:[
+                    { model: Room, as: 'rooms' },
+                    { model: Patient, as: 'patients' },
 
-        if (beds.count) {
-            return res.status(200).json({ status: 200, message: 'success', data: beds });
+                ]
+            };
+
+            const rooms = await bedService.paginate(options)
+            const totalPages = Math.ceil(rooms.count / limit);
+
+            if (rooms.rows.length > 0) {
+                return res.status(200).json({
+                    status: 200,
+                    message: 'Success',
+                    data: {
+                        data:rooms.rows,
+                        current_page: page,
+                        first_page_url: `${req.protocol}://${req.get("host")}${req.baseUrl}?page=1`,
+                        from: offset + 1,
+                        last_page: totalPages,
+                        last_page_url: `${req.protocol}://${req.get("host")}${req.baseUrl}?page=${totalPages}`,
+                        next_page_url: page < totalPages ? `${req.protocol}://${req.get("host")}${req.baseUrl}?page=${page + 1}` : null,
+                        prev_page_url: page > 1 ? `${req.protocol}://${req.get("host")}${req.baseUrl}?page=${page - 1}` : null,
+                        path: `${req.protocol}://${req.get("host")}${req.baseUrl}`,
+                        per_page: limit,
+                        to: offset + rooms.rows.length,
+                        total: rooms.count,
+                    }
+                });
+            } 
+            else {
+                return res.status(204).json({
+                    status: 204,
+                    message: 'No Data',
+                });
+              }
+        } 
+        catch (error) {
+            console.error('Error in index:', error);
+            return res.status(500).json({ status: 500, message: 'Server Error' });
         }
-        return res.status(204).json({ status: 204, message: 'No Data' });
-    } catch (error) {
-        return res.status(500).json({ status: 500, message: 'Server error', error });
     }
-};
 
-exports.show = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const bed = await bedService.getById(id, [], ['room', 'patient']);
+    async show(req, res) {
+        try {
+            const { id } = req.params;
+            const bed = await bedService.getById(id,{relations:[
+                { model: Room, as: 'rooms' },
+                { model: Patient, as: 'patients' },
+            ]});
 
-        if (bed) {
-            return res.status(200).json({ status: 200, message: 'success', data: bed });
+            if (!bed) {
+                return res.status(404).json({ status: 404, message: 'Not Found' });
+            }
+
+            return res.status(200).json({
+                status: 200,
+                message: 'Success',
+                data: { data: bed }
+            });
+        } catch (error) {
+            console.error('Error in show:', error);
+            return res.status(500).json({ status: 500, message: 'Server Error' });
         }
-        return res.status(404).json({ status: 404, message: 'Not Found' });
-    } catch (error) {
-        return res.status(500).json({ status: 500, message: 'Server error', error });
-    }
-};
-
-exports.create = async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ status: 400, message: 'Validation error', errors: errors.array() });
     }
 
-    try {
-        const bed = await bedService.create(req.body);
-        if (bed.id) {
-            return res.status(201).json({ status: 201, message: 'created', data: bed });
+    async create(req, res) {
+        try {
+            const bed = await bedService.create(req.body);
+            return res.status(200).json({
+                status: 200,
+                message: 'Created',
+                data: { data: bed }
+            });
+        } catch (error) {
+            console.error('Error in create:', error);
+            return res.status(500).json({ status: 500, message: 'Server Error' });
         }
-        return res.status(500).json({ status: 500, message: 'Server error' });
-    } catch (error) {
-        return res.status(500).json({ status: 500, message: 'Server error', error });
-    }
-};
-
-exports.update = async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ status: 400, message: 'Validation error', errors: errors.array() });
     }
 
-    try {
-        const { id } = req.params;
-        const bed = await bedService.getById(id);
-        if (!bed) {
-            return res.status(404).json({ status: 404, message: 'Not Found' });
+    async update(req, res) {
+        try {
+            const { id } = req.params;
+            const bed = await bedService.getById(id);
+            if (!bed) {
+                return res.status(404).json({ status: 404, message: 'Not Found' });
+            }
+            const updatedBed = await bedService.update(id, req.body);
+            return res.status(200).json({
+                status: 200,
+                message: 'Success',
+                data: { data: updatedBed }
+            });
+        } catch (error) {
+            console.error('Error in update:', error);
+            return res.status(500).json({ status: 500, message: 'Server Error' });
         }
-
-        const updatedBed = await bedService.update(id, req.body);
-        return res.status(200).json({ status: 200, message: 'success', data: updatedBed });
-    } catch (error) {
-        return res.status(500).json({ status: 500, message: 'Server error', error });
     }
-};
 
-exports.delete = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const isDeleted = await bedService.delete(id);
-
-        if (isDeleted) {
-            return res.status(204).json({ status: 204, message: 'success' });
+    async remove(req, res) {
+        try {
+            const { id } = req.params;
+            const success = await bedService.delete(id);
+            if (!success) {
+                return res.status(404).json({ status: 404, message: 'Not Found' });
+            }
+            return res.status(200).send();
+        } catch (error) {
+            console.error('Error in delete:', error);
+            return res.status(500).json({ status: 500, message: 'Server Error' });
         }
-        return res.status(404).json({ status: 404, message: 'error' });
-    } catch (error) {
-        return res.status(500).json({ status: 500, message: 'Server error', error });
     }
-};
+}
+
+module.exports = new BedController();

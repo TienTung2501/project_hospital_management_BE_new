@@ -38,14 +38,17 @@ User.belongsTo(Department, { foreignKey: 'department_id', as: 'departments' });
 User.belongsTo(Position, { foreignKey: 'position_id', as: 'positions' });
 User.belongsToMany(Room, { through: UserRoom, foreignKey: "user_id", otherKey: "room_id", as: "rooms" });
 User.belongsToMany(Permission, { through: UserPermission, foreignKey: "user_id", otherKey: "permission_id", as: "permissions" });
-
+User.hasMany(MedicalRecord, { foreignKey: 'user_id', as: 'medicalRecords' });
 // 🔹 Service
 Service.belongsTo(ServiceCatalogue, { foreignKey: "service_catalogue_id", as: "service_catalogues" });
 Service.belongsTo(RoomCatalogue, { foreignKey: "room_catalogue_id", as: "room_catalogues" });
 // 🔹 MedicalRecord
+MedicalRecord.belongsTo(User, { foreignKey: 'user_id', as: 'users' });
 MedicalRecord.belongsTo(Patient, { foreignKey: "patient_id", as: "patients" });
 MedicalRecord.belongsToMany(Service, { through: MedicalRecordServiceRelation, foreignKey: "medical_record_id", otherKey: "service_id", as: "services" });
 MedicalRecord.belongsToMany(Medication, { through: MedicalRecordMedication, foreignKey: "medical_record_id", otherKey: "medication_id", as: "medications" });
+// Patient
+Patient.hasMany(MedicalRecord, { foreignKey: "patient_id", as: "medical_records" }); 
 
 // 🔹 Medication
 Medication.belongsTo(MedicationCatalogue, { foreignKey: "medication_catalogue_id", as: "medication_catalogues" });

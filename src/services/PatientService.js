@@ -1,21 +1,10 @@
-const BaseService = require("./baseService");
-const Patient = require("../models/patient");
+const BaseService = require("./BaseService");
+const Patient = require("../models/Patient");
 
 class PatientService extends BaseService {
   constructor() {
     super(Patient);
   }
-
-  async getHistory(id) {
-    return await Patient.findByPk(id, {
-      include: [
-        {
-          association: "medicalRecords",
-          include: ["services", "user", "medications"],
-        },
-      ],
-    });
-  }
 }
 
-module.exports = new PatientService();
+module.exports = PatientService;
