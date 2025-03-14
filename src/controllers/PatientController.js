@@ -1,5 +1,5 @@
 const PatientService = require('../services/PatientService');
-const {MedicalRecord, Service, User, Medication} =require('../models')
+const {MedicalRecord, Service, User, Medication,MedicalRecordService} =require('../models')
 const patientService = new PatientService();
 const { Op } = require("sequelize");
 
@@ -94,10 +94,17 @@ class PatientController {
             where: { diagnosis: { [Op.ne]: null } }, // Điều kiện where
             required: false, // Không loại bỏ bệnh nhân nếu không có medicalRecords
             include: [
-              { model: Service, as: "services" },
-              { model: User, as: "users" },
-              { model: Medication, as: "medications" },
-            ],
+                {
+                  model: Service,
+                  as: "services",
+                  through: {
+                    model: MedicalRecordService,
+                  },
+                },
+                { model: User, as: "users" },
+                { model: Medication, as: "medications" }
+              ]
+              
           },
         ];
   

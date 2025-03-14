@@ -70,8 +70,8 @@ class BaseService {
     async paginate({ where, relations = [], order, limit, offset, count = [] }) {
         try {
             const attributes = { include: [] };
-    
-            // Thêm các thuộc tính đếm (count)
+
+                // Thêm các thuộc tính đếm (count)
             const safeCount = Array.isArray(count) ? count : [];
                 safeCount.forEach(relation => {
                     attributes.include.push([
@@ -89,9 +89,10 @@ class BaseService {
                 where,
                 include: relations, // Dùng hàm format để ánh xạ models đúng
                 order,
-                offset: parseInt(offset),
+                offset: offset ? parseInt(offset) : 0, // Mặc định offset = 0 nếu không được truyền
                 limit: parseInt(limit) || 20,
             };
+
     
             // Chỉ thêm `attributes` nếu có count
             if (attributes.include.length > 0) {

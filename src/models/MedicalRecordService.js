@@ -42,7 +42,7 @@ MedicalRecordService.init(
   {
     sequelize,
     modelName: "MedicalRecordService",
-    tableName: "medical_record_services",
+    tableName: "medical_record_service",
     timestamps: true,
     underscored: true,
   }

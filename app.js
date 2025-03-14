@@ -15,8 +15,8 @@ const serviceRoutes = require("./src/routes/ServiceRoutes");
 const serviceCatalogueRoutes = require("./src/routes/ServiceCatalogueRoutes");
 const medicationRoutes = require("./src/routes/MedicationRoutes");
 const medicationCatalogueRoutes = require("./src/routes/MedicationCatalogueRoutes");
-const meicalrecordRoutes = require("./src/routes/MedicalRecordRoutes");
-const meicalrecordServiceRoutes = require("./src/routes/MedicalRecordServiceRoutes");
+const medicalrecordRoutes = require("./src/routes/MedicalRecordRoutes");
+const medicalrecordServiceRoutes = require("./src/routes/MedicalRecordServiceRoutes");
 const patientRoutes = require("./src/routes/PatientRoutes");
 
 const app = express();
@@ -36,8 +36,8 @@ app.use("/api/services", serviceRoutes);
 app.use("/api/serviceCatalogues", serviceCatalogueRoutes);
 app.use("/api/medications", medicationRoutes);
 app.use("/api/medicationCatalogues", medicationCatalogueRoutes);
-app.use("/api/meicalRecords", meicalrecordRoutes);
-app.use("/api/meicalRecordServices", meicalrecordServiceRoutes);
+app.use("/api/medicalRecords", medicalrecordRoutes);
+app.use("/api/medicalRecordService", medicalrecordServiceRoutes);
 app.use("/api/patients", patientRoutes);
 
 

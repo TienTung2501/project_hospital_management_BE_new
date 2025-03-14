@@ -1,52 +1,51 @@
-const MedicalRecordServiceInterface = require('../interface/MedicalRecordServiceInterface');
-const { MedicalRecord, Medication, Service } = require('../models');
-const { Op } = require('sequelize');
+const { MedicalRecord,  Service,User,Patient } = require('../models');
+const { Op,Sequelize } = require('sequelize');
+const BaseService = require('./BaseService');
 
-class MedicalRecordService extends MedicalRecordServiceInterface {
+class MedicalRecordService extends BaseService {
     constructor() {
-        super();
+        super(MedicalRecord);
     }
 
-    async getMedicalRecordList(fieldSelects = ['*'], conditions = [], relations = [], fieldSearch = [], orderBy = ['updated_at', 'ASC'], limit = 20, isDiagnosis) {
-        let query = {
-            attributes: fieldSelects,
-            where: {},
-            include: [],
-            order: [[orderBy[0], orderBy[1]]],
-            limit: limit,
-        };
-
-        if (conditions.length) {
-            conditions.forEach(condition => {
-                query.where[condition[0]] = { [Op[condition[1]]]: condition[2] };
-            });
+    async getMedicalRecordList(where = {}, relations = [], orderBy = ["visit_date", "ASC"], limit = 20, isDiagnosis) {
+        try {
+            let query = {
+                where,
+                include: relations, // Nhận `include` từ tham số `relations`
+                order: orderBy && orderBy.length === 2 ? [[orderBy[0], orderBy[1]]] : [],
+                limit: parseInt(limit, 20),
+            };
+    
+            if (isDiagnosis === 0) {
+                query.where[Op.and] = [
+                    Sequelize.literal(`
+                        (SELECT COUNT(*) FROM medical_record_service 
+                         WHERE medical_record_service.medical_record_id = MedicalRecord.id 
+                         AND medical_record_service.result_details IS NOT NULL) = 
+                        (SELECT COUNT(*) FROM medical_record_service 
+                         WHERE medical_record_service.medical_record_id = MedicalRecord.id)
+                    `)
+                ];
+            }
+            
+    
+            console.log("Query executed:", JSON.stringify(query, null, 2));
+            return await MedicalRecord.findAll(query);
+        } catch (error) {
+            console.error("Error in fetchMedicalRecords:", error);
+            throw error;
         }
-
-        if (relations.includes('patient')) {
-            query.include.push({ association: 'patient' });
-        }
-
-        if (!isDiagnosis) {
-            query.where[Op.and] = [
-                sequelize.literal(`
-                    (SELECT COUNT(*) FROM medical_record_service WHERE medical_record_service.medical_record_id = medical_records.id AND medical_record_service.result_details IS NOT NULL) = 
-                    (SELECT COUNT(*) FROM medical_record_service WHERE medical_record_service.medical_record_id = medical_records.id)
-                `),
-            ];
-        }
-
-        return await MedicalRecord.findAll(query);
     }
-
+    
     async save(payload) {
         const transaction = await sequelize.transaction();
         try {
-            await MedicalRecord.update(payload.medical_record.data, {
-                where: { id: payload.medical_record.medical_record_id },
+            await MedicalRecord.update(payload.medical_records.data, {
+                where: { id: payload.medical_records.medical_record_id },
                 transaction,
             });
 
-            const medicalRecord = await MedicalRecord.findByPk(payload.medical_record.medical_record_id, { transaction });
+            const medicalRecord = await MedicalRecord.findByPk(payload.medical_records.medical_record_id, { transaction });
 
             let pivotData = payload.medications.data.map(item => ({
                 medication_id: item.medication_id,
