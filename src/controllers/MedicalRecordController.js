@@ -1,5 +1,5 @@
 const medicalRecordService = require('../services/MedicalRecordService');
-const {Patient, Service,User, MedicalRecordService} =require('../models')
+const {Patient, Service,User, MedicalRecordServiceModel} =require('../models')
 const { Op,Sequelize } = require('sequelize');
 class MedicalRecordController {
     constructor() {
@@ -8,33 +8,30 @@ class MedicalRecordController {
         this.getPatientWaitTest = this.getPatientWaitTest.bind(this);
     }
     async getPatientWaitDiagnosis(req, res) {
-        return this.getMedicalRecordList(req, res,0);
+        return this.getMedicalRecordList(req, res,1);
     }
 
     async getPatientWaitTest(req, res) {
-        return this.getMedicalRecordList(req, res,1);
+        return this.getMedicalRecordList(req, res,0);
     }
 
     async getMedicalRecordList(req, res,status = 1) {
         try {
             const query = req.query || {};
-            const { id, keyword, limit = 1, room_id } = query;
-    
+            const { id, keyword, limit, room_id } = query;
+            const statusValue = status; // ✅ Gán giá trị đúng
+
             let whereCondition = {
-                status: status,
                 diagnosis: { [Op.is]: null },
             };
-    
+            if(room_id !== undefined&& statusValue === 1) whereCondition.room_id=room_id;
             if (id !== undefined) whereCondition.id = id;
-            if (!status && room_id !== undefined) whereCondition.room_id = room_id;
-    
             if (keyword) {
                 whereCondition[Op.or] = [
                     { name: { [Op.like]: `%${keyword}%` } },
                     { cccd_number: { [Op.like]: `%${keyword}%` } },
                 ];
             }
-    
             const relations = [
                 { model: User, as: 'users' }, // Quan hệ với User
                 {
@@ -46,23 +43,22 @@ class MedicalRecordController {
                 {
                     model: Service,
                     as: 'services',
-                    through: [ 
-                        {
-                            model: MedicalRecordService,
-                            as: 'medical_record_service',
-                            where: status
-                                ? { result_details: null, ...(room_id ? { room_id } : {}) }
-                                : { result_details: { [Op.ne]: null } },
-                            required: false, // Tránh lỗi nếu không có dữ liệu
-                        }
-                    ],
+                    through: { // 🛠 Sửa từ `through: []` thành `through: { model: MedicalRecordServiceModel }`
+                        model: MedicalRecordServiceModel,
+                      //  as: 'medical_record_service',
+                        where: {
+                            ...(statusValue === 0 ? { result_details: null } : { result_details: { [Op.ne]: null } }),
+                            ...(room_id !== undefined&& statusValue === 0 ? { room_id } : {}) // Lọc đúng room_id
+                        },
+                        required: true, // ⚠️ Đổi thành true để bắt buộc có dữ liệu
+                    },
                     required: false,
-                },
+                }
+                
             ];
             
-            
             // Gọi hàm lấy dữ liệu
-            const medicalRecords = await medicalRecordService.getMedicalRecordList(whereCondition, relations, [["visit_date", "ASC"]], limit,status);
+            const medicalRecords = await medicalRecordService.getMedicalRecordList(whereCondition, relations, [["visit_date", "ASC"]], limit,statusValue,room_id);
             return res.status(medicalRecords.length ? 200 : 204).json({
                 status: medicalRecords.length ? 200 : 204,
                 message: medicalRecords.length ? "success" : "No Data",
@@ -79,12 +75,10 @@ class MedicalRecordController {
     }
     async index(req, res) {
         const { keyword, status, limit = 1, room_id } = req.query;
-        const conditions = [];
 
-        if (status !== undefined) conditions.push({ status });
-        if (room_id !== undefined) conditions.push({ room_id });
         const whereCondition = {};
         if (status) whereCondition.status = status;
+        if (room_id) whereCondition.room_id = room_id;
         const options = {
             where: whereCondition,
             limit,
@@ -95,7 +89,6 @@ class MedicalRecordController {
             ]
 
         };
-        
         const medicalRecords = await medicalRecordService.paginate(options);
         if (medicalRecords.rows.length > 0) {
             return res.status(200).json({
@@ -154,8 +147,8 @@ class MedicalRecordController {
         try {
             const flag = await medicalRecordService.createPivot(req.body);
 
-            return res.status(flag ? 201 : 500).json({
-                status: flag ? 201 : 500,
+            return res.status(flag ? 200 : 500).json({
+                status: flag ? 200 : 500,
                 message: flag ? 'created' : 'server error',
             });
         } catch (error) {
@@ -167,8 +160,8 @@ class MedicalRecordController {
         try {
             const flag = await medicalRecordService.save(req.body);
 
-            return res.status(flag ? 201 : 500).json({
-                status: flag ? 201 : 500,
+            return res.status(flag ? 200 : 500).json({
+                status: flag ? 200 : 500,
                 message: flag ? 'created' : 'server error',
             });
         } catch (error) {
@@ -203,8 +196,8 @@ class MedicalRecordController {
         try {
             const flag = await MedicalRecordService.delete(id);
 
-            return res.status(flag ? 204 : 404).json({
-                status: flag ? 204 : 404,
+            return res.status(flag ? 200 : 404).json({
+                status: flag ? 200 : 404,
                 message: flag ? 'success' : 'error',
             });
         } catch (error) {

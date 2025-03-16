@@ -8,18 +8,10 @@ MedicalRecordMedication.init(
     medical_record_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        references: {
-          model: MedicalRecord,
-          key: "id"
-        }
       },
       medication_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        references: {
-          model: Medication,
-          key: "id"
-        }
       },
       name: {
         type: DataTypes.STRING,

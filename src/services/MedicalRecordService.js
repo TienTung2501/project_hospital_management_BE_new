@@ -1,5 +1,6 @@
-const { MedicalRecord,  Service,User,Patient } = require('../models');
+const {  MedicalRecord,MedicalRecordMedication,MedicalRecordServiceModel } = require('../models');
 const { Op,Sequelize } = require('sequelize');
+const sequelize = require("../config/database"); // Import sequelize đúng cách
 const BaseService = require('./BaseService');
 
 class MedicalRecordService extends BaseService {
@@ -13,10 +14,13 @@ class MedicalRecordService extends BaseService {
                 where,
                 include: relations, // Nhận `include` từ tham số `relations`
                 order: orderBy && orderBy.length === 2 ? [[orderBy[0], orderBy[1]]] : [],
-                limit: parseInt(limit, 20),
+                limit: parseInt(limit) ||20,
             };
-    
-            if (isDiagnosis === 0) {
+            if(isDiagnosis!==1){
+                query.where.status=1;
+            }
+            
+            if (isDiagnosis===1) {
                 query.where[Op.and] = [
                     Sequelize.literal(`
                         (SELECT COUNT(*) FROM medical_record_service 
@@ -26,10 +30,9 @@ class MedicalRecordService extends BaseService {
                          WHERE medical_record_service.medical_record_id = MedicalRecord.id)
                     `)
                 ];
+                //query.where.status=1;
             }
-            
-    
-            console.log("Query executed:", JSON.stringify(query, null, 2));
+            console.log(query);
             return await MedicalRecord.findAll(query);
         } catch (error) {
             console.error("Error in fetchMedicalRecords:", error);
@@ -40,23 +43,28 @@ class MedicalRecordService extends BaseService {
     async save(payload) {
         const transaction = await sequelize.transaction();
         try {
-            await MedicalRecord.update(payload.medical_records.data, {
-                where: { id: payload.medical_records.medical_record_id },
+            await MedicalRecord.update(payload.medical_record.data, {
+                where: { id: payload.medical_record.medical_record_id },
                 transaction,
             });
 
-            const medicalRecord = await MedicalRecord.findByPk(payload.medical_records.medical_record_id, { transaction });
-
+            const medicalRecord = await MedicalRecord.findByPk(payload.medical_record.medical_record_id, { transaction });
+            if (!medicalRecord) {
+                await transaction.rollback();
+                return false;
+            }
             let pivotData = payload.medications.data.map(item => ({
+                medical_record_id: payload.medical_record.medical_record_id,
                 medication_id: item.medication_id,
                 name: item.name,
                 dosage: item.dosage,
                 measure: item.measure,
                 description: item.description,
             }));
+            console.log("MedicalRecordMedication:", MedicalRecordMedication);
 
-            await medicalRecord.addMedications(pivotData, { transaction });
-
+            await MedicalRecordMedication.bulkCreate(pivotData, { transaction });
+            await medicalRecord.update({ status: 1 }, { transaction });
             await transaction.commit();
             return true;
         } catch (error) {
@@ -66,7 +74,7 @@ class MedicalRecordService extends BaseService {
         }
     }
 
-    async createPivot(payload) {
+    async createPivot(payload) {// chỉ định dịch vụ cho bệnh nhân., sau khi bệnh nhân được chỉ định thì status của medicalrecord chuyển thành 1 và có thêm bảng medical_record_service
         const transaction = await sequelize.transaction();
         try {
             let pivotData = payload.services.map(item => ({
@@ -75,14 +83,27 @@ class MedicalRecordService extends BaseService {
                 room_id: item.room_id,
                 patient_id: item.patient_id,
             }));
-
+    
             let medicalRecord = await MedicalRecord.findByPk(payload.medical_record_id, { transaction });
-
+    
             if (medicalRecord) {
-                await medicalRecord.addServices(pivotData, { transaction });
+                await MedicalRecordServiceModel.bulkCreate(
+                    pivotData.map(item => ({
+                        medical_record_id: payload.medical_record_id,
+                        service_id: item.service_id,
+                        service_name: item.service_name,
+                        room_id: item.room_id,
+                        patient_id: item.patient_id
+                    })),
+                    { transaction }
+                );
+                
+   
+    
+                // Cập nhật trạng thái
                 await medicalRecord.update({ status: 1 }, { transaction });
             }
-
+    
             await transaction.commit();
             return true;
         } catch (error) {
@@ -91,6 +112,6 @@ class MedicalRecordService extends BaseService {
             return false;
         }
     }
-}
+}    
 
 module.exports = new MedicalRecordService();

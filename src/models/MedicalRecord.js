@@ -9,7 +9,12 @@ MedicalRecord.init(
         patient_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
         user_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
         room_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
-        visit_date: { type: DataTypes.DATE, allowNull: false },
+        visit_date: { 
+            type: DataTypes.DATE, 
+            allowNull: false, 
+            defaultValue: DataTypes.NOW 
+        },
+        
         diagnosis: { type: DataTypes.TEXT, allowNull: true },
         notes: { type: DataTypes.TEXT, allowNull: true },
         appointment_date: { type: DataTypes.DATE, allowNull: true },

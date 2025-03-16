@@ -1,9 +1,9 @@
 const { DataTypes, Model } = require("sequelize");
 const sequelize = require("../config/database");
 
-class MedicalRecordService extends Model {}
+class MedicalRecordServiceModel extends Model {}
 
-MedicalRecordService.init(
+MedicalRecordServiceModel.init(
   {
     id: {
       type: DataTypes.BIGINT.UNSIGNED,
@@ -48,4 +48,4 @@ MedicalRecordService.init(
   }
 );
 
-module.exports = MedicalRecordService;
+module.exports = MedicalRecordServiceModel;

@@ -9,15 +9,15 @@ const Permission = require("../models/Permission");
 const Service = require("../models/Service");
 const ServiceCatalogue = require("../models/ServiceCatalogue");
 const MedicalRecord = require("../models/MedicalRecord");
-const MedicalRecordService = require("../models/MedicalRecordService");
+const MedicalRecordServiceModel = require("../models/MedicalRecordService");
 const Medication = require("../models/Medication");
 const MedicationCatalogue = require("../models/MedicationCatalogue");
 const Patient = require("../models/Patient");
-
+const MedicalRecordMedication=require("../models/MedicalRecordMedication");
 // 🔹 Định nghĩa bảng trung gian (đặt `tableName` theo số nhiều)
 const UserRoom = sequelize.define("user_room", {}, { timestamps: false, tableName: "user_room",underscored:true });
 const UserPermission = sequelize.define("user_permission", {}, { timestamps: false, tableName: "user_permission",underscored:true });
-const MedicalRecordMedication = sequelize.define("medical_record_medication", {}, { timestamps: false, tableName: "medical_record_medication",underscored:true });
+
 
 // 🔹 Room Associations
 Room.belongsTo(Department, { foreignKey: "department_id", as: "departments" }); 
@@ -42,30 +42,51 @@ User.hasMany(MedicalRecord, { foreignKey: 'user_id', as: 'medical_records' });
 Service.belongsTo(ServiceCatalogue, { foreignKey: "service_catalogue_id", as: "service_catalogues" });
 Service.belongsTo(RoomCatalogue, { foreignKey: "room_catalogue_id", as: "room_catalogues" });
 Service.belongsToMany(MedicalRecord, { 
-  through: MedicalRecordService, 
+  through: MedicalRecordServiceModel, 
   foreignKey: "service_id", 
   otherKey: "medical_record_id", 
   as: "medical_records" 
 });
-Service.hasMany(MedicalRecordService, { foreignKey: 'service_id', as: 'medical_record_service' });
+Service.hasMany(MedicalRecordServiceModel, { foreignKey: 'service_id', as: 'medical_record_service' });
 
 // 🔹 MedicalRecord
 MedicalRecord.belongsTo(User, { foreignKey: 'user_id', as: 'users' });
 MedicalRecord.belongsTo(Patient, { foreignKey: "patient_id", as: "patients" });
-// MedicalRecord.belongsToMany(Service, { through: MedicalRecordServiceRelation, foreignKey: "medical_record_id", otherKey: "service_id", as: "services" });
+// MedicalRecord.belongsToMany(Service, { through: MedicalRecordServiceModelRelation, foreignKey: "medical_record_id", otherKey: "service_id", as: "services" });
  MedicalRecord.belongsToMany(Medication, { through: MedicalRecordMedication, foreignKey: "medical_record_id", otherKey: "medication_id", as: "medications" });
- MedicalRecord.belongsToMany(Service, {  through: MedicalRecordService,   foreignKey: "medical_record_id",   otherKey: "service_id",   as: "services" });
- MedicalRecord.hasMany(MedicalRecordService, {
+ MedicalRecord.belongsToMany(Service, {  through: MedicalRecordServiceModel,   foreignKey: "medical_record_id",   otherKey: "service_id",   as: "services" });
+ MedicalRecord.hasMany(MedicalRecordServiceModel, {
   foreignKey: "medical_record_id",
   as: "medical_record_service", // Đặt alias khớp với truy vấn SQL
 });
 
-MedicalRecordService.belongsTo(MedicalRecord, {
+MedicalRecordServiceModel.belongsTo(MedicalRecord, {
   foreignKey: "medical_record_id",
   as: "medical_records",
 });
 
-MedicalRecordService.belongsTo(Service, { foreignKey: "service_id", as: "services" });
+MedicalRecordServiceModel.belongsTo(Service, { foreignKey: "service_id", as: "services" });
+Medication.belongsToMany(MedicalRecord, {
+  through: MedicalRecordMedication,
+  foreignKey: "medication_id",
+  otherKey: "medical_record_id",
+});
+
+// 🔹 Quan hệ 1-N: Một MedicalRecord có nhiều MedicalRecordMedication
+MedicalRecord.hasMany(MedicalRecordMedication, {
+  foreignKey: "medical_record_id",
+});
+MedicalRecordMedication.belongsTo(MedicalRecord, {
+  foreignKey: "medical_record_id",
+});
+
+// 🔹 Quan hệ 1-N: Một Medication có nhiều MedicalRecordMedication
+Medication.hasMany(MedicalRecordMedication, {
+  foreignKey: "medication_id",
+});
+MedicalRecordMedication.belongsTo(Medication, {
+  foreignKey: "medication_id",
+});
 // Patient
 Patient.hasMany(MedicalRecord, { foreignKey: "patient_id", as: "medical_records" }); 
 
@@ -85,6 +106,6 @@ const syncDatabase = async () => {
 module.exports = { 
   sequelize, syncDatabase, 
   Department, User, Room, RoomCatalogue, Position, Permission, 
-  Service, ServiceCatalogue, Bed, MedicalRecord, MedicalRecordService, 
+  Service, ServiceCatalogue, Bed, MedicalRecord, MedicalRecordServiceModel, MedicalRecordMedication,
   Medication, MedicationCatalogue, Patient 
 };

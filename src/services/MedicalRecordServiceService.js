@@ -1,15 +1,15 @@
-const MedicalRecordService = require('../models/MedicalRecordService');
+const MedicalRecordServiceModel = require('../models/MedicalRecordService');
 const BaseService = require('./BaseService');
 
 class MedicalRecordServiceService extends BaseService{
     constructor() {
-        super(MedicalRecordService);
+        super(MedicalRecordServiceModel);
     }
     async updateMultiple(payload) {
-        const transaction = await MedicalRecordService.sequelize.transaction();
+        const transaction = await MedicalRecordServiceModel.sequelize.transaction();
         try {
             for (const item of payload) {
-                await MedicalRecordService.update(
+                await MedicalRecordServiceModel.update(
                     { result_details: item.result_details },
                     { where: { id: item.id }, transaction }
                 );
