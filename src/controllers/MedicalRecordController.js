@@ -1,6 +1,7 @@
 const medicalRecordService = require('../services/MedicalRecordService');
 const {Patient, Service,User, MedicalRecordServiceModel} =require('../models')
 const { Op,Sequelize } = require('sequelize');
+const moment = require("moment");
 class MedicalRecordController {
     constructor() {
         this.getMedicalRecordList = this.getMedicalRecordList.bind(this);
@@ -18,12 +19,30 @@ class MedicalRecordController {
     async getMedicalRecordList(req, res,status = 1) {
         try {
             const query = req.query || {};
-            const { id, keyword, limit, room_id } = query;
+            const { id, keyword, limit, room_id, date  } = query;
             const statusValue = status; // ✅ Gán giá trị đúng
 
+            // let whereCondition = {
+            //     diagnosis: { [Op.is]: null },
+            // };
             let whereCondition = {
-                diagnosis: { [Op.is]: null },
+                // diagnosis: { [Op.is]: null },
             };
+            
+              // Lấy ngày hôm nay theo chuẩn UTC (00:00:00 - 23:59:59)
+            const selectedDate = date ? moment.utc(date, "YYYY-MM-DD") : moment.utc();
+            // Lấy khoảng thời gian từ 00:00:00 - 23:59:59 của ngày đã chọn
+            const dayStart = selectedDate.startOf("day").toISOString(); // 2025-03-20T00:00:00.000Z
+            const dayEnd = selectedDate.endOf("day").toISOString();   // 2025-03-20T23:59:59.999Z
+          
+            //http://localhost:8000/api/medicalRecords/waitDiagnosis?date=2025-03-16 nếu truyền vào date
+            //http://localhost:8000/api/medicalRecords/list?date=2025-03-16 nếu truyền vào date
+            whereCondition.visit_date = { [Op.between]: [dayStart, dayEnd] };
+
+            if (statusValue === 0) {
+                whereCondition.diagnosis = { [Op.is]: null }; // ✅ Sửa lỗi dấu `:`
+            }
+            
             if(room_id !== undefined&& statusValue === 1) whereCondition.room_id=room_id;
             if (id !== undefined) whereCondition.id = id;
             if (keyword) {
@@ -42,18 +61,17 @@ class MedicalRecordController {
                 },
                 {
                     model: Service,
-                    as: 'services',
-                    through: { // 🛠 Sửa từ `through: []` thành `through: { model: MedicalRecordServiceModel }`
+                    as: "services",
+                    through: {
                         model: MedicalRecordServiceModel,
-                      //  as: 'medical_record_service',
                         where: {
-                            ...(statusValue === 0 ? { result_details: null } : { result_details: { [Op.ne]: null } }),
-                            ...(room_id !== undefined&& statusValue === 0 ? { room_id } : {}) // Lọc đúng room_id
+                            ...(room_id !== undefined && statusValue === 0 ? { room_id } : {}), // ✅ Đóng dấu ngoặc {}
                         },
                         required: true, // ⚠️ Đổi thành true để bắt buộc có dữ liệu
                     },
                     required: false,
                 }
+                
                 
             ];
             
@@ -74,18 +92,32 @@ class MedicalRecordController {
         }
     }
     async index(req, res) {
-        const { keyword, status, limit = 1, room_id } = req.query;
+        const { keyword, status, limit = 1, room_id,date } = req.query;
 
         const whereCondition = {};
-        if (status) whereCondition.status = status;
+        // if (status) whereCondition.status = status;
         if (room_id) whereCondition.room_id = room_id;
+           // Lấy ngày hôm nay theo chuẩn UTC (00:00:00 - 23:59:59)
+        const selectedDate = date ? moment.utc(date, "YYYY-MM-DD") : moment.utc();
+        // Lấy khoảng thời gian từ 00:00:00 - 23:59:59 của ngày đã chọn
+        const dayStart = selectedDate.startOf("day").toISOString(); // 2025-03-20T00:00:00.000Z
+        const dayEnd = selectedDate.endOf("day").toISOString();   // 2025-03-20T23:59:59.999Z
+        
+        //http://localhost:8000/api/medicalRecords/waitDiagnosis?date=2025-03-16 nếu truyền vào date
+        //http://localhost:8000/api/medicalRecords/list?date=2025-03-16 nếu truyền vào date
+           whereCondition.visit_date = { [Op.between]: [dayStart, dayEnd] };
         const options = {
             where: whereCondition,
             limit,
             order: [['visit_date', 'ASC']],
             relations:[
                 { model: Patient, as: 'patients' },
-                { model: Service, as: 'services' },
+                { model: Service,
+                    as: "services",
+                    through: {
+                        model: MedicalRecordServiceModel,
+                    },
+                    required: false, },
             ]
 
         };
