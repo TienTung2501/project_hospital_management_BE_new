@@ -24,7 +24,16 @@ Room.init(
     },
     status_bed: {
       type: DataTypes.INTEGER,
+      defaultValue: 0, // 0: Chưa đầy, 1: Đầy
+    },
+    occupied_beds: {
+      type: DataTypes.INTEGER,
       defaultValue: 0,
+    },
+    
+    total_beds: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0, // Tổng số giường trong phòng
     },
   },
   {
@@ -32,9 +41,8 @@ Room.init(
     modelName: "Room",
     tableName: "rooms",
     timestamps: true,
-    underscored:true,
+    underscored: true,
   }
 );
-
 
 module.exports = Room;

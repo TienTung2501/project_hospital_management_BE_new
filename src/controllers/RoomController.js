@@ -26,7 +26,7 @@ class RoomController {
                 limit,
                 offset,
                 order: [['id', 'DESC']],
-                count:['beds'],
+               // count:['beds'],
                 relations:[
                     { model: Department, as: 'departments' },
                     { model: RoomCatalogue, as: 'room_catalogues' },

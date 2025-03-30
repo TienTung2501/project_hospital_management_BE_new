@@ -1,5 +1,5 @@
 const medicalRecordService = require('../services/MedicalRecordService');
-const {Patient, Service,User, MedicalRecordServiceModel} =require('../models')
+const {Patient, Service,User, MedicalRecordServiceModel, Medication, MedicalRecordMedication, TreatmentSession} =require('../models')
 const { Op,Sequelize } = require('sequelize');
 const moment = require("moment");
 class MedicalRecordController {
@@ -39,9 +39,9 @@ class MedicalRecordController {
             //http://localhost:8000/api/medicalRecords/list?date=2025-03-16 nếu truyền vào date
             whereCondition.visit_date = { [Op.between]: [dayStart, dayEnd] };
 
-            if (statusValue === 0) {
-                whereCondition.diagnosis = { [Op.is]: null }; // ✅ Sửa lỗi dấu `:`
-            }
+            // if (statusValue === 0) {
+            //     whereCondition.diagnosis = { [Op.is]: null }; // ✅ Sửa lỗi dấu `:`
+            // }
             
             if(room_id !== undefined&& statusValue === 1) whereCondition.room_id=room_id;
             if (id !== undefined) whereCondition.id = id;
@@ -105,7 +105,7 @@ class MedicalRecordController {
         
         //http://localhost:8000/api/medicalRecords/waitDiagnosis?date=2025-03-16 nếu truyền vào date
         //http://localhost:8000/api/medicalRecords/list?date=2025-03-16 nếu truyền vào date
-           whereCondition.visit_date = { [Op.between]: [dayStart, dayEnd] };
+        //whereCondition.visit_date = { [Op.between]: [dayStart, dayEnd] };
         const options = {
             where: whereCondition,
             limit,
@@ -118,6 +118,15 @@ class MedicalRecordController {
                         model: MedicalRecordServiceModel,
                     },
                     required: false, },
+                { model: Medication,
+                    as: "medications",
+                    through: {
+                        model: MedicalRecordMedication,
+                    },
+                    required: false, },
+                { model: TreatmentSession,
+                    as: "treatment_sesions",
+                    required: false, },
             ]
 
         };
@@ -128,7 +137,7 @@ class MedicalRecordController {
                 message: 'Success',
                 data: {
                     data: medicalRecords.rows,
-                    total: medicalRecords.count,
+                    total: medicalRecords.rows.length,
                 }
             });
         } else {
@@ -177,7 +186,29 @@ class MedicalRecordController {
 
     async createPivot(req, res) {
         try {
-            const flag = await medicalRecordService.createPivot(req.body);
+            const pivotIds = await medicalRecordService.createPivot(req.body);
+    
+            if (pivotIds.length > 0) {
+                return res.status(200).json({
+                    status: 200,
+                    message: 'Created successfully',
+                    pivot_ids: pivotIds, // ✅ Trả về danh sách pivot_id
+                });
+            } else {
+                return res.status(500).json({
+                    status: 500,
+                    message: 'Server error',
+                });
+            }
+        } catch (error) {
+            return res.status(500).json({ status: 500, message: 'Server Error', error: error.message });
+        }
+    }
+    
+
+    async save(req, res) {
+        try {
+            const flag = await medicalRecordService.save(req.body);
 
             return res.status(flag ? 200 : 500).json({
                 status: flag ? 200 : 500,
@@ -187,10 +218,9 @@ class MedicalRecordController {
             return res.status(500).json({ status: 500, message: 'Server Error', error: error.message });
         }
     }
-
-    async save(req, res) {
+    async createPivotTreatmentSession(req, res) {
         try {
-            const flag = await medicalRecordService.save(req.body);
+            const flag = await medicalRecordService.createPivotTreatmentSession(req.body);
 
             return res.status(flag ? 200 : 500).json({
                 status: flag ? 200 : 500,

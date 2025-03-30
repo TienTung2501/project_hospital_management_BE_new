@@ -5,6 +5,11 @@ class MedicalRecordMedication extends Model {}
 
 MedicalRecordMedication.init(
   {
+    id: {
+      type: DataTypes.BIGINT.UNSIGNED,
+      autoIncrement: true,
+      primaryKey: true,
+    },
     medical_record_id: {
         type: DataTypes.INTEGER,
         allowNull: false,

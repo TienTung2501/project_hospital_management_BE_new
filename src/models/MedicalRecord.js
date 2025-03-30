@@ -18,7 +18,7 @@ MedicalRecord.init(
         diagnosis: { type: DataTypes.TEXT, allowNull: true },
         notes: { type: DataTypes.TEXT, allowNull: true },
         appointment_date: { type: DataTypes.DATE, allowNull: true },
-        is_inpatient: { type: DataTypes.BOOLEAN, defaultValue: false },
+        is_inpatient: { type: DataTypes.INTEGER, defaultValue: false },
         inpatient_detail: { type: DataTypes.TEXT, allowNull: true },
         status: { type: DataTypes.INTEGER, defaultValue: 0 },
     },

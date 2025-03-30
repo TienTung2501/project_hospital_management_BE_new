@@ -22,6 +22,10 @@ Service.init(
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
     },
+    unit: {
+      type: DataTypes.STRING(20),
+      defaultValue: "Lần",
+    },
     service_catalogue_id: {
       type: DataTypes.BIGINT.UNSIGNED,
       allowNull: false,

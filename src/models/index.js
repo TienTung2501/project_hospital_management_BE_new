@@ -14,6 +14,12 @@ const Medication = require("../models/Medication");
 const MedicationCatalogue = require("../models/MedicationCatalogue");
 const Patient = require("../models/Patient");
 const MedicalRecordMedication=require("../models/MedicalRecordMedication");
+const TreatmentSession=require("./TreatmentSession");
+const MedicalOrder=require("../models/MedicalOrder");
+const DailyHealth=require("../models/DailyHealth");
+const Bill=require("../models/Bill");
+const BillDetail=require("../models/BillDetail");
+const AdvancePayment=require("../models/AdvancePayment");
 // 🔹 Định nghĩa bảng trung gian (đặt `tableName` theo số nhiều)
 const UserRoom = sequelize.define("user_room", {}, { timestamps: false, tableName: "user_room",underscored:true });
 const UserPermission = sequelize.define("user_permission", {}, { timestamps: false, tableName: "user_permission",underscored:true });
@@ -59,6 +65,17 @@ MedicalRecord.belongsTo(Patient, { foreignKey: "patient_id", as: "patients" });
   foreignKey: "medical_record_id",
   as: "medical_record_service", // Đặt alias khớp với truy vấn SQL
 });
+ MedicalRecord.hasMany(TreatmentSession, {
+  foreignKey: "medical_record_id",
+  as: "treatment_sesions", // Đặt alias khớp với truy vấn SQL
+});
+
+
+TreatmentSession.belongsTo(MedicalRecord, { foreignKey: 'medical_record_id' });
+DailyHealth.belongsTo(TreatmentSession, { foreignKey: 'treatment_session_id' });
+MedicalOrder.belongsTo(TreatmentSession, { foreignKey: 'treatment_session_id' });
+TreatmentSession.hasMany(MedicalOrder, { foreignKey: 'treatment_session_id' });
+TreatmentSession.hasMany(DailyHealth, { foreignKey: 'treatment_session_id' });
 
 MedicalRecordServiceModel.belongsTo(MedicalRecord, {
   foreignKey: "medical_record_id",
@@ -72,6 +89,8 @@ Medication.belongsToMany(MedicalRecord, {
   otherKey: "medical_record_id",
 });
 
+// Quan hệ: Một TreatmentSession có nhiều hóa đơn
+
 // 🔹 Quan hệ 1-N: Một MedicalRecord có nhiều MedicalRecordMedication
 MedicalRecord.hasMany(MedicalRecordMedication, {
   foreignKey: "medical_record_id",
@@ -79,7 +98,7 @@ MedicalRecord.hasMany(MedicalRecordMedication, {
 MedicalRecordMedication.belongsTo(MedicalRecord, {
   foreignKey: "medical_record_id",
 });
-
+MedicalOrder.belongsTo(TreatmentSession, { foreignKey: 'treatment_session_id' });
 // 🔹 Quan hệ 1-N: Một Medication có nhiều MedicalRecordMedication
 Medication.hasMany(MedicalRecordMedication, {
   foreignKey: "medication_id",
@@ -94,6 +113,8 @@ Patient.hasMany(MedicalRecord, { foreignKey: "patient_id", as: "medical_records"
 Medication.belongsTo(MedicationCatalogue, { foreignKey: "medication_catalogue_id", as: "medication_catalogues" });
 // nháp
 
+BillDetail.belongsTo(Bill, { foreignKey: 'bill_id' });
+
 const syncDatabase = async () => {
   try {
     await sequelize.sync({ alter: true }); // Cập nhật bảng nếu có thay đổi
@@ -107,5 +128,5 @@ module.exports = {
   sequelize, syncDatabase, 
   Department, User, Room, RoomCatalogue, Position, Permission, 
   Service, ServiceCatalogue, Bed, MedicalRecord, MedicalRecordServiceModel, MedicalRecordMedication,
-  Medication, MedicationCatalogue, Patient 
+  Medication, MedicationCatalogue, Patient ,TreatmentSession,MedicalOrder,DailyHealth,Bill,BillDetail
 };

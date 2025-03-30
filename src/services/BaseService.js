@@ -14,17 +14,17 @@ class BaseService {
     async getById(id, { count = [], relations = [] } = {}) {
         const attributes = { include: [] };
     
-        // Thêm đếm số lượng (count)
-        const safeCount = Array.isArray(count) ? count : [];
-        safeCount.forEach(relation => {
-            attributes.include.push([
-                Sequelize.literal(`(
-                    SELECT COUNT(*) FROM ${relation}
-                    WHERE ${relation}.room_id = ${this.model.name}.id
-                )`),
-                `${relation}_count`
-            ]);
-        });
+        // // Thêm đếm số lượng (count)
+        // const safeCount = Array.isArray(count) ? count : [];
+        // safeCount.forEach(relation => {
+        //     attributes.include.push([
+        //         Sequelize.literal(`(
+        //             SELECT COUNT(*) FROM ${relation}
+        //             WHERE ${relation}.room_id = ${this.model.name}.id
+        //         )`),
+        //         `${relation}_count`
+        //     ]);
+        // });
         
     
         // Nếu không có count, bỏ `attributes`
@@ -72,16 +72,16 @@ class BaseService {
             const attributes = { include: [] };
 
                 // Thêm các thuộc tính đếm (count)
-            const safeCount = Array.isArray(count) ? count : [];
-                safeCount.forEach(relation => {
-                    attributes.include.push([
-                        Sequelize.literal(`(
-                            SELECT COUNT(*) FROM ${relation}
-                            WHERE ${relation}.room_id = ${this.model.name}.id
-                        )`),
-                        `${relation}_count`
-                    ]);
-                });
+            // const safeCount = Array.isArray(count) ? count : [];
+            //     safeCount.forEach(relation => {
+            //         attributes.include.push([
+            //             Sequelize.literal(`(
+            //                 SELECT COUNT(*) FROM ${relation}
+            //                 WHERE ${relation}.room_id = ${this.model.name}.id
+            //             )`),
+            //             `${relation}_count`
+            //         ]);
+            //     });
 
     
             // Xây dựng query

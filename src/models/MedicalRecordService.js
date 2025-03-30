@@ -30,6 +30,10 @@ MedicalRecordServiceModel.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
+    quantity:{
+      type:DataTypes.INTEGER,
+      defaultValue:1
+    },
     result_details: {
       type: DataTypes.TEXT,
       allowNull: true,
@@ -38,6 +42,7 @@ MedicalRecordServiceModel.init(
       type: DataTypes.DATE,
       allowNull: true,
     },
+    payment_status:{ type: DataTypes.INTEGER, defaultValue: 0 },
   },
   {
     sequelize,

@@ -97,8 +97,8 @@ class UserController {
         try {
             const user = await UserService.create(req.body);
             if (user) {
-                return res.status(201).json({
-                    status: 201,
+                return res.status(200).json({
+                    status: 200,
                     message: 'Created',
                     data: {
                         data: user,

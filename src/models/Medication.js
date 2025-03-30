@@ -22,7 +22,7 @@ Medication.init(
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
     },
-    measure: {
+    unit: {
       type: DataTypes.STRING,
       allowNull: false,
     },
@@ -36,6 +36,15 @@ Medication.init(
     status: {
       type: DataTypes.TINYINT,
       defaultValue: 1,
+    },
+    health_insurance_applied: {
+      type: DataTypes.TINYINT(1), // ⚠️ Đổi BOOLEAN → TINYINT(1) để tương thích với MySQL
+      defaultValue: 0, // false = 0, true = 1
+    },
+    health_insurance_value: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0.0,
     },
   },
   {
