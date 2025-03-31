@@ -24,5 +24,4 @@ MedicalRecord.init(
     },
     { sequelize, modelName: 'MedicalRecord', tableName: 'medical_records', timestamps: true,underscored:true }
 );
-
 module.exports = MedicalRecord;

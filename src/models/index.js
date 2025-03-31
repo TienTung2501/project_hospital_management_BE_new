@@ -112,8 +112,14 @@ Patient.hasMany(MedicalRecord, { foreignKey: "patient_id", as: "medical_records"
 // 🔹 Medication
 Medication.belongsTo(MedicationCatalogue, { foreignKey: "medication_catalogue_id", as: "medication_catalogues" });
 // nháp
+// Liên kết Bill với Patient
+Bill.belongsTo(Patient, { foreignKey: "patient_id", as: "patients" }); // Singular form
+Patient.hasMany(Bill, { foreignKey: "patient_id", as: "bills" }); // Plural form
 
-BillDetail.belongsTo(Bill, { foreignKey: 'bill_id' });
+// Liên kết Bill với BillDetail
+BillDetail.belongsTo(Bill, { foreignKey: "bill_id", as: "bill" }); // Singular form
+Bill.hasMany(BillDetail, { foreignKey: "bill_id", as: "bill_details" }); // Plural form
+
 
 const syncDatabase = async () => {
   try {

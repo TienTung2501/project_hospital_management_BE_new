@@ -1,6 +1,7 @@
 const { DataTypes, Model } = require("sequelize");
 const sequelize = require("../config/database");
 const TreatmentSession = require("./TreatmentSession");
+const BillDetail = require("./BillDetail");
 const MedicalRecordService = require("./MedicalRecordService"); // Import model MedicalRecordService
 
 class Bill extends Model {}
@@ -12,12 +13,16 @@ Bill.init(
       type: DataTypes.BIGINT.UNSIGNED,
       allowNull: true, // Có thể null vì bệnh nhân ngoại trú
     },
+    patient_id: {
+        type: DataTypes.BIGINT.UNSIGNED,
+        allowNull: false, // Bắt buộc phải có bệnh nhân
+      },
     bill_type: { 
       type: DataTypes.ENUM("beds", "services",  "medications"),
       allowNull: false 
     }, // Loại hóa đơn
     pivot_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },// có thể true vì giường có thể không có pivot. Dùng để liên kết với service
-    total_price: { type: DataTypes.DECIMAL(10, 2), allowNull: false, defaultValue: 0 }, // Tổng chi phí
+    total_price: { type: DataTypes.DECIMAL(10, 2), allowNull: true, defaultValue: 0 }, // Tổng chi phí
     total_insurance_covered: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 }, // Bảo hiểm chi trả
     total_paid: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 }, // Số tiền đã thanh toán
     total_amount_due: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 }, // Số tiền còn nợ

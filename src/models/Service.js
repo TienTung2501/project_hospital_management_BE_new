@@ -60,5 +60,4 @@ Service.init(
     underscored: true,
   }
 );
-
 module.exports = Service;

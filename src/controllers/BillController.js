@@ -1,5 +1,6 @@
 const { Op,Sequelize } = require('sequelize');
 const { Bill, BillDetail } = require('../models');
+const BillService = require('../services/BillService');
 class BillController{
         async index(req, res) {
             const { keyword, status, limit = 1, room_id,date } = req.query;
@@ -68,14 +69,20 @@ class BillController{
         }
         async update(req, res) {
             const { id } = req.params;
-    
+            
+            /*
+            payload={
+            id:id
+            status:1
+            }
+            */
             try {
-                const medicalRecord = await medicalRecordService.getById(id);
-                if (!medicalRecord) {
+                const bill = await BillService.getById(id);
+                if (!bill) {
                     return res.status(404).json({ status: 404, message: 'Not Found' });
                 }
     
-                const updatedRecord = await medicalRecordService.update(id, req.body);
+                const updatedRecord = await BillService.update(id, req.body);
     
                 return res.status(200).json({
                     status: 200,

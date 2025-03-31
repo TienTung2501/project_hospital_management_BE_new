@@ -18,6 +18,7 @@ const medicationCatalogueRoutes = require("./src/routes/MedicationCatalogueRoute
 const medicalrecordRoutes = require("./src/routes/MedicalRecordRoutes");
 const medicalrecordServiceRoutes = require("./src/routes/MedicalRecordServiceRoutes");
 const patientRoutes = require("./src/routes/PatientRoutes");
+const treatmentSessionRoutes = require("./src/routes/TreatmentSessionRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -39,6 +40,7 @@ app.use("/api/medicationCatalogues", medicationCatalogueRoutes);
 app.use("/api/medicalRecords", medicalrecordRoutes);
 app.use("/api/medicalRecordService", medicalrecordServiceRoutes);
 app.use("/api/patients", patientRoutes);
+app.use("/api/treatmentSession", treatmentSessionRoutes);
 
 
 app.get('/', (req, res) => {

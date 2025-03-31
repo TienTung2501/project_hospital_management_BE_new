@@ -1,6 +1,6 @@
 const { DataTypes, Model } = require("sequelize");
 const sequelize = require("../config/database");
-const Bill = require("./Bill");
+const { models } = require("../config/database");
 const Service = require("./Service");
 const Medication = require("./Medication");
 const Bed = require("./Bed");
@@ -21,13 +21,13 @@ BillDetail.init(
       type: DataTypes.ENUM("beds", "services",  "medications"),
       allowNull: false 
     }, // Loại dịch vụ
-    model_name: { type: DataTypes.STRING(255), allowNull: false },
-    unit: { type: DataTypes.STRING(50), allowNull: false },
-    quantity: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1 },
-    price: { type: DataTypes.DECIMAL(10, 2), allowNull: false }, // Đơn giá
-    total_price: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
-    total_insurance_covered: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
-    total_amount_due: { type: DataTypes.DECIMAL(10, 2), allowNull: false }, // Số tiền bệnh nhân cần trả sau khi trừ BHYT
+    model_name: { type: DataTypes.STRING(255), allowNull: true },
+    unit: { type: DataTypes.STRING(50), allowNull: true },
+    quantity: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 1 },
+    price: { type: DataTypes.DECIMAL(10, 2), allowNull: true }, // Đơn giá
+    total_price: { type: DataTypes.DECIMAL(10, 2), allowNull: true },
+    total_insurance_covered: { type: DataTypes.DECIMAL(10, 2), allowNull: true },
+    total_amount_due: { type: DataTypes.DECIMAL(10, 2), allowNull: true }, // Số tiền bệnh nhân cần trả sau khi trừ BHYT
     health_insurance_applied: { type: DataTypes.TINYINT, defaultValue: 0 }, // 1: Có BHYT, 0: Không có
     health_insurance_value: { type: DataTypes.FLOAT, defaultValue: 0 }, // % BHYT chi trả
   },
@@ -55,14 +55,16 @@ BillDetail.beforeCreate(async (billDetail) => {
 
   // 📌 Điền thông tin từ model tương ứng
   billDetail.model_name = modelData.name;
-  billDetail.unit = modelData.unit || "lần"; // Đơn vị mặc định nếu không có
+  billDetail.unit = modelData.unit || "Lần"; // Đơn vị mặc định nếu không có
   billDetail.price = modelData.price;
   billDetail.health_insurance_applied = modelData.health_insurance_applied || 0;
   billDetail.health_insurance_value = modelData.health_insurance_value || 0;
 
   // 📌 Lấy thông tin bệnh nhân từ hóa đơn
-  const bill = await Bill.findByPk(billDetail.bill_id, { include: [{ model: Patient }] });
-
+  const Bill = models.Bill;
+  console.log(Bill)
+  const bill = await Bill.findByPk(billDetail.bill_id, { include: [{ model: Patient ,as: "patients" }] });
+  
   if (bill && bill.Patient) {
     const patient = bill.Patient;
     if (patient.health_insurance_code) {

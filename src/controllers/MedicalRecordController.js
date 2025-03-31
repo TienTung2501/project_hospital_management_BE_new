@@ -62,6 +62,7 @@ class MedicalRecordController {
                 {
                     model: Service,
                     as: "services",
+                    duplicating: true,
                     through: {
                         model: MedicalRecordServiceModel,
                         where: {
@@ -114,12 +115,14 @@ class MedicalRecordController {
                 { model: Patient, as: 'patients' },
                 { model: Service,
                     as: "services",
+                    duplicating: true,
                     through: {
                         model: MedicalRecordServiceModel,
                     },
                     required: false, },
                 { model: Medication,
                     as: "medications",
+                    duplicating: true,
                     through: {
                         model: MedicalRecordMedication,
                     },

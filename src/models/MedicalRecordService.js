@@ -52,5 +52,4 @@ MedicalRecordServiceModel.init(
     underscored: true,
   }
 );
-
 module.exports = MedicalRecordServiceModel;

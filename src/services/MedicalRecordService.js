@@ -1,8 +1,8 @@
-const {  MedicalRecord,MedicalRecordMedication,MedicalRecordServiceModel, TreatmentSession, Bill, Bed } = require('../models');
+const {  MedicalRecord,MedicalRecordMedication,MedicalRecordServiceModel, TreatmentSession, Bill,BillDetail, Bed } = require('../models');
 const { Op,Sequelize } = require('sequelize');
 const sequelize = require("../config/database"); // Import sequelize đúng cách
 const BaseService = require('./BaseService');
-const BillService = require('./BillService');
+
 
 class MedicalRecordService extends BaseService {
     constructor() {
@@ -118,6 +118,7 @@ class MedicalRecordService extends BaseService {
             // 🔄 Tạo hóa đơn (Bill) cho từng dịch vụ
             for (let i = 0; i < pivotIds.length; i++) {
                 let billPayload = {
+                    patient_id:payload.patient_id,
                     treatment_session_id: payload.treatment_session_id, // Vì đây là dịch vụ ngoại trú
                     bill_type: "services",
                     pivot_id: pivotIds[i], // Gán pivot_id từ dịch vụ vừa tạo
@@ -186,6 +187,7 @@ class MedicalRecordService extends BaseService {
     
             // 🔄 Tạo một hóa đơn duy nhất (Bill)
             let billPayload = {
+                patient_id:payload.patient_id,
                 treatment_session_id: payload.treatment_session_id, // Vì đây là thuốc cho bệnh nhân ngoại trú
                 bill_type: "medications",
                 pivot_id: null, // Không cần gán vì thuốc không có pivot cụ thể

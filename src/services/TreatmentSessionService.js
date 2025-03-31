@@ -1,18 +1,19 @@
-const {  MedicalRecordService,TreatmentSession, MedicalOrder } = require('../models');
+const {  TreatmentSession, MedicalOrder } = require('../models');
 const { Op,Sequelize } = require('sequelize');
 const sequelize = require("../config/database"); // Import sequelize đúng cách
 const BaseService = require('./BaseService');
-const TreatmentSession = require('../models/TreatmentSession');
+const MedicalRecordService=require('./MedicalRecordService')
 
 class TreatmentSessionService extends BaseService {
     constructor() {
         super(TreatmentSession);
     }
-    async createMedicalOrder(payload) {// chỉ định dịch vụ cho bệnh nhân., sau khi bệnh nhân được chỉ định thì status của medicalrecord chuyển thành 1 và có thêm bảng medical_record_service
+    async createPivotMedicalOrder(payload) {// chỉ định dịch vụ cho bệnh nhân., sau khi bệnh nhân được chỉ định thì status của medicalrecord chuyển thành 1 và có thêm bảng medical_record_service
         /*
         payload gửi vào:
             const payload = {
               medical_record_id: Number(medical_record_id), // ID của hồ sơ bệnh án
+              patient_id: Number(patient_id), // ID của hồ sơ bệnh án
               treatment_session_id: Number(treatment_session_id), // ID của đợt điều trị
               order_type: "services", // ID của đợt điều trị
               order_detail: servicePatients.map(({ service_id, room_id, service_name }) => ({
@@ -27,6 +28,7 @@ class TreatmentSessionService extends BaseService {
             const payload = {
                 medical_record_id: Number(medical_record_id), // ID của hồ sơ bệnh án
                 treatment_session_id: Number(treatment_session_id), // ID của đợt điều trị
+                patient_id: Number(patient_id), // ID của đợt điều trị
                 order_type: "medications", // loại order
                 order_detail: medicationDetails.map((medication) => ({
                 medication_id: Number(medication.id), // ID của thuốc
@@ -47,52 +49,25 @@ class TreatmentSessionService extends BaseService {
         // cứ gọi đến bill đi
         if(payload.order_type==="services"){
             const payload_service={
+                patient_id:payload.patient_id,
                 treatment_session_id:payload.treatment_session_id||null,
                 medical_record_id: payload.medical_record_id, // ID của hồ sơ bệnh án
                 services: payload.order_detail
             }
-            pivotId = await new MedicalRecordService.createPivotService(payload_service);
+            pivotId = await MedicalRecordService.createPivotService(payload_service);
             // lấy id của pivot để lưu lại cho medical_order
            
         }
         if(payload.order_type==="medications"){
             const payload_medication={
+                patient_id:payload.patient_id,
                 treatment_session_id:payload.treatment_session_id||null,
                 medical_record_id: payload.medical_record_id, // ID của hồ sơ bệnh án
                 medications: payload.order_detail
             }
-            pivotId = await new MedicalRecordService.createPivotMedication(payload_medication);
+            pivotId = await MedicalRecordService.createPivotMedication(payload_medication);
             // lấy id của pivot để lưu lại cho medical_order
         }
-            let payload_medical_order = {
-                treatment_session_id: payload.treatment_session_id,
-                detail: JSON.stringify({ type: payload.order_type, pivot_ids: pivotId }), // 🔥 Chuyển JSON thành chuỗi
-                notes: payload.notes
-            };
-        
-    
-            let treatment_sesion = await TreatmentSession.findByPk(payload.treatment_session_id, { transaction });
-    
-            if (treatment_sesion) {
-                await MedicalOrder.create( payload_medical_order, { transaction }); 
-            }
-    
-            await transaction.commit();
-            return true;
-        } catch (error) {
-            await transaction.rollback();
-            console.error(error);
-            return false;
-        }
-    }
-    async createPivotDailyHealth(payload) {// chỉ định dịch vụ cho bệnh nhân., sau khi bệnh nhân được chỉ định thì status của medicalrecord chuyển thành 1 và có thêm bảng medical_record_service
-      
-        
-        const transaction = await sequelize.transaction();
-        try {
-        let pivotId;
-        // cứ gọi đến bill đi
-       
             let payload_medical_order = {
                 treatment_session_id: payload.treatment_session_id,
                 detail: JSON.stringify({ type: payload.order_type, pivot_ids: pivotId }), // 🔥 Chuyển JSON thành chuỗi
