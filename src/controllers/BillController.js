@@ -1,45 +1,52 @@
+const moment = require("moment");
 const { Op,Sequelize } = require('sequelize');
-const { Bill, BillDetail } = require('../models');
+const { Bill, BillDetail, MedicalRecord, Patient } = require('../models');
 const BillService = require('../services/BillService');
 class BillController{
         async index(req, res) {
-            const { keyword, status, limit = 1, room_id,date } = req.query;
-
-            const whereCondition = {};
+            const { keyword, status, limit = 20, room_id,date } = req.query;
+            const whereCondition={}
             // if (status) whereCondition.status = status;
             if (room_id) whereCondition.room_id = room_id;
                 // Lấy ngày hôm nay theo chuẩn UTC (00:00:00 - 23:59:59)
-            const selectedDate = date ? moment.utc(date, "YYYY-MM-DD") : moment.utc();
-            // Lấy khoảng thời gian từ 00:00:00 - 23:59:59 của ngày đã chọn
-            const dayStart = selectedDate.startOf("day").toISOString(); // 2025-03-20T00:00:00.000Z
-            const dayEnd = selectedDate.endOf("day").toISOString();   // 2025-03-20T23:59:59.999Z
-            
+                const patientWhereCondition = keyword
+                ? {
+                      [Op.or]: [
+                          { name: { [Op.like]: `%${keyword}%` } },
+                          { cccd_number: { [Op.like]: `%${keyword}%` } },
+                      ],
+                  }
+                : undefined;
+                  
             //http://localhost:8000/api/medicalRecords/waitDiagnosis?date=2025-03-16 nếu truyền vào date
             //http://localhost:8000/api/medicalRecords/list?date=2025-03-16 nếu truyền vào date
-            whereCondition.visit_date = { [Op.between]: [dayStart, dayEnd] };
+             whereCondition.status =0;
             const options = {
                 where: whereCondition,
                 limit,
-                order: [['visit_date', 'ASC']],
-                relations:[
-                    { model: Patient, as: 'patients' },
-                    { model: Service,
-                        as: "services",
-                        through: {
-                            model: MedicalRecordServiceModel,
-                        },
-                        required: false, },
-                ]
+                order: [['created_at', 'ASC']],
+                relations: [
+                    {
+                        model: Patient,
+                        as: "patients",
+                        where: patientWhereCondition,
+                        required: true, // Đảm bảo nếu không có patient vẫn lấy Bill
+                    },
+                    {
+                        model: BillDetail,
+                        as: "bill_details",
+                    },
+                   ],
 
             };
-            const medicalRecords = await medicalRecordService.paginate(options);
-            if (medicalRecords.rows.length > 0) {
+            const bills = await BillService.paginate(options);
+            if (bills.rows.length > 0) {
                 return res.status(200).json({
                     status: 200,
                     message: 'Success',
                     data: {
-                        data: medicalRecords.rows,
-                        total: medicalRecords.rows.length,
+                        data: bills.rows,
+                        total: bills.rows.length,
                     }
                 });
             } else {

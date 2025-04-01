@@ -33,8 +33,8 @@ class Bill extends Model {
       const session = await TreatmentSession.findByPk(bill.treatment_session_id);
       if (session) {
         bill.total_paid = session.total_advance_payment; // Số tiền đã ứng
-        bill.refunded_amount = session.refunded_amount; // Số tiền đã hoàn lại
-        bill.amount_due = session.current_cost - session.total_advance_payment; // Số tiền cần thanh toán
+        bill.refunded_amount = session.total_advance_payment-bill.total_amount_due; // Số tiền đã hoàn lại
+        bill.amount_due = session.current_cost - session.total_advance_payment>=0?session.current_cost - session.total_advance_payment:0; // Số tiền cần thanh toán
       }
     }
 
@@ -67,7 +67,6 @@ Bill.init(
 );
 
 Bill.afterUpdate(async (bill, options) => {
-  console.log('🚨 Hook afterUpdate đang được gọi', bill);
 
   // Kiểm tra nếu status là 1
   if (bill.status === 1) {

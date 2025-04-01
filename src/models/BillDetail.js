@@ -41,7 +41,7 @@ BillDetail.beforeCreate(async (billDetail) => {
 
   if (!modelData) throw new Error("Model không tồn tại!");
 
-  billDetail.model_name = modelData.name;
+  billDetail.model_name = modelData.name||"Bed";
   billDetail.unit = modelData.unit || "Lần";
   billDetail.price = modelData.price;
   billDetail.health_insurance_applied = modelData.health_insurance_applied || 0;

@@ -1,8 +1,9 @@
-const { DataTypes, Model } = require("sequelize");
+const { DataTypes, Model, Op } = require("sequelize");
 const sequelize = require("../config/database");
 const MedicalRecord = require("./MedicalRecord");
 const Bed = require("./Bed");
 const AdvancePayment = require("./AdvancePayment");
+const cron = require("node-cron");
 
 class TreatmentSession extends Model {}
 
@@ -29,10 +30,10 @@ TreatmentSession.init(
     notes: { type: DataTypes.TEXT, allowNull: true }, 
     conclusion_of_treatment: { type: DataTypes.TEXT, allowNull: true }, 
     status: { type: DataTypes.INTEGER, defaultValue: 1 },
-    current_cost: { type: DataTypes.DECIMAL(10, 2), allowNull: false, defaultValue: 0 }, // Tổng chi phí hiện tại sau bảo hiểm
-    total_advance_payment: { type: DataTypes.DECIMAL(10, 2), allowNull: false, defaultValue: 0 }, // Tổng tiền tạm ứng
-    refunded_amount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 }, // Tiền hoàn lại
-    payment_status:{ type: DataTypes.INTEGER, defaultValue: 0 },
+    current_cost: { type: DataTypes.DECIMAL(10, 2), allowNull: false, defaultValue: 0 }, 
+    total_advance_payment: { type: DataTypes.DECIMAL(10, 2), allowNull: false, defaultValue: 0 }, 
+    refunded_amount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 }, 
+    payment_status: { type: DataTypes.INTEGER, defaultValue: 0 },
   },
   { sequelize, modelName: "TreatmentSession", tableName: "treatment_sessions", timestamps: true, underscored: true }
 );
@@ -44,10 +45,10 @@ async function calculateCosts(session) {
     const bed = await Bed.findByPk(session.bed_id);
     if (!bed) return;
 
-    const bedPricePerDay = bed.price; // Giá giường mỗi ngày
+    const bedPricePerDay = bed.price;
     const today = new Date();
     const startDate = new Date(session.start_date);
-    
+
     // Tính số ngày nằm viện
     const daysInHospital = Math.max(1, Math.ceil((today - startDate) / (1000 * 60 * 60 * 24)));
 
@@ -68,22 +69,27 @@ async function calculateCosts(session) {
     session.total_advance_payment = totalAdvance || 0;
 }
 
-TreatmentSession.beforeCreate(async (session) => {
-    await calculateCosts(session);
-});
+// 📌 Hook trước khi tạo & cập nhật session
+TreatmentSession.beforeCreate(calculateCosts);
+TreatmentSession.beforeUpdate(calculateCosts);
 
-TreatmentSession.beforeUpdate(async (session) => {
-    await calculateCosts(session);
-});
-TreatmentSession.beforeUpdate(async (session) => {
-    // Kiểm tra nếu status chuyển thành 0 mà end_date chưa được đặt
-    if (session.changed("status") && session.status === 0 && !session.end_date) {
-        session.end_date = new Date(); // Gán thời gian hiện tại
+/**
+ * 🕛 Tự động cập nhật `current_cost` mỗi ngày lúc 00:00
+ */
+cron.schedule('0 0 * * *', async () => {
+        const sessions = await TreatmentSession.findAll({
+        where: { status: { [Op.ne]: 0 } } // Chỉ cập nhật session chưa hoàn thành
+    });
+
+    for (const session of sessions) {
+        await calculateCosts(session);
+        await session.save();
     }
-    
-    // Tính toán lại chi phí & tạm ứng
-    await calculateCosts(session);
-});
 
+    console.log("✅ Cập nhật chi phí điều trị thành công!");
+}, {
+    scheduled: true,
+    timezone: "Asia/Ho_Chi_Minh"
+});
 
 module.exports = TreatmentSession;

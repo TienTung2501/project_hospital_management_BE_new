@@ -253,11 +253,25 @@ class MedicalRecordService extends BaseService {
                 return false;
             }
     
-            //  Cập nhật thông tin medical_record (đưa bệnh nhân vào viện)
-            await Bed.update(
-                { patient_id: medicalRecord.patient_id }, 
-                { where: { id: payload.treatment_session.bed_id }, transaction }
-            );
+           // Lưu lại instance, điều này sẽ kích hoạt các hooks như afterUpdate
+            const bed = await Bed.findByPk( payload.treatment_session.bed_id);
+            if (!bed) {
+                return { status: 404, message: 'Bed not found' };  // Return error if no bill is found
+            }
+            const payload_bed={
+                patient_id: medicalRecord.patient_id,
+                status:1
+            }
+            /*
+            Cập nhật các trường của bill: Sử dụng Object.assign(bill, payload) để cập nhật các trường trong instance của hóa đơn.
+
+            Lưu lại instance: Thay vì gọi Bill.update(), bạn sử dụng bill.save() để lưu lại thay đổi. Việc này sẽ đảm bảo rằng các hooks như afterUpdate được gọi khi bạn lưu instance.
+            */
+            Object.assign(bed, payload_bed);
+
+            // Save the updated bill instance
+            await bed.save();  // Lưu lại instance, điều này sẽ kích hoạt các hooks như afterUpdate
+
             
             if(medicalRecord.is_inpatient===0){
                 await MedicalRecord.update(payload.medical_record.data, {

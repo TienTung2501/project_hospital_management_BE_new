@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
+
 const { syncDatabase } = require("./src/models/index");
 //routes
 const departmentRoutes = require('./src/routes/DepartmentRoutes');

@@ -1,4 +1,4 @@
-const {  TreatmentSession, MedicalOrder } = require('../models');
+const {  TreatmentSession, MedicalOrder,Bill,BillDetail,Bed } = require('../models');
 const { Op,Sequelize } = require('sequelize');
 const sequelize = require("../config/database"); // Import sequelize đúng cách
 const BaseService = require('./BaseService');
@@ -99,9 +99,12 @@ class TreatmentSessionService extends BaseService {
                 await transaction.rollback();
                 return false;
             }
-    
+            const newpayload={
+                ...payload,
+                end_date:Date.now(),
+            }
             // Cập nhật TreatmentSession
-            await TreatmentSession.update(payload, {
+            await TreatmentSession.update(newpayload, {
                 where: { id:id },
                 transaction,
             });
@@ -119,14 +122,13 @@ class TreatmentSessionService extends BaseService {
     
             // Tạo hóa đơn cho giường bệnh
             let billPayload = {
-                treatment_session_id: payload.treatment_session_id, 
+                patient_id: payload.patient_id,
+                treatment_session_id: treatment_session.id, 
                 bill_type: "beds",
-                pivot_id: null, 
             };
     
             let bill = await Bill.create(billPayload, { transaction });
-            console.log("Hóa đơn được tạo:", bill.id);
-    
+   
             // Tạo chi tiết hóa đơn (BillDetail)
             let billDetailsPayload = {
                 bill_id: bill.id,
@@ -136,7 +138,7 @@ class TreatmentSessionService extends BaseService {
             };
     
             await BillDetail.create(billDetailsPayload, { transaction });
-    
+            await Bill.updateBill(bill.id, transaction);
             //Commit transaction nếu mọi thứ thành công
             await transaction.commit();
             return true;

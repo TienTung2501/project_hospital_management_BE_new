@@ -35,7 +35,8 @@ class TreatmentSessionController{
                     /*
                         payload gửi vào:
                             const payload = {
-                                
+                                treatment_session_id:,
+                                amount:
                             };
                         */
                     const flag = await AdvancePayment.create(req.body);
