@@ -1,39 +1,36 @@
-const {  MedicalRecord,MedicalRecordMedication,MedicalRecordService,MedicalRecordServiceModel,TreatmentSession } = require('../models');
-const { Op,Sequelize } = require('sequelize');
-const sequelize = require("../config/database"); // Import sequelize đúng cách
 const BaseService = require('./BaseService');
 const Bill = require('../models/Bill');
-
+const { sequelize } = require('../config/database');  // Import sequelize instance
 class BillService extends BaseService {
     constructor() {
         super(Bill);
     }
 
-    async create(payload) {
+    // Updated method to handle bill updates
+    async update(id, payload) {
         try {
-            const medicalRecord = await Bill.create(payload);
+            // Tìm hóa đơn theo ID
+            const bill = await Bill.findByPk(id);
+            if (!bill) {
+                return { status: 404, message: 'Bill not found' };  // Return error if no bill is found
+            }
+            /*
+            Cập nhật các trường của bill: Sử dụng Object.assign(bill, payload) để cập nhật các trường trong instance của hóa đơn.
 
-            return res.status(medicalRecord ? 201 : 500).json({
-                status: medicalRecord ? 201 : 500,
-                message: medicalRecord ? 'created' : 'server error',
-                data: medicalRecord,
-            });
+            Lưu lại instance: Thay vì gọi Bill.update(), bạn sử dụng bill.save() để lưu lại thay đổi. Việc này sẽ đảm bảo rằng các hooks như afterUpdate được gọi khi bạn lưu instance.
+            */
+            Object.assign(bill, payload);
+
+            // Save the updated bill instance
+            await bill.save();  // Lưu lại instance, điều này sẽ kích hoạt các hooks như afterUpdate
+
+            return { status: 200, message: 'Bill updated successfully' };  // Success response
         } catch (error) {
-            return res.status(500).json({ status: 500, message: 'Server Error', error: error.message });
+            console.error(error);
+            return { status: 500, message: 'Server Error', error: error.message };
         }
     }
-    async createPivotBillDetail(payload) {
-            try {
-                const flag = await BillDetail.create(payload);
-    
-                return res.status(flag ? 200 : 500).json({
-                    status: flag ? 200 : 500,
-                    message: flag ? 'created' : 'server error',
-                });
-            } catch (error) {
-                return res.status(500).json({ status: 500, message: 'Server Error', error: error.message });
-            }
-        }  
-}    
+}
 
 module.exports = new BillService();
+

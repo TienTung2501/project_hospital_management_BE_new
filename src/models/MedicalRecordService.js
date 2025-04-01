@@ -14,6 +14,10 @@ MedicalRecordServiceModel.init(
       type: DataTypes.BIGINT.UNSIGNED,
       allowNull: false,
     },
+    bill_id: {
+      type: DataTypes.BIGINT.UNSIGNED,
+      allowNull: true,
+    },
     service_id: {
       type: DataTypes.BIGINT.UNSIGNED,
       allowNull: false,

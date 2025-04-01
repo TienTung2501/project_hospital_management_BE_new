@@ -68,31 +68,29 @@ class BillController{
             }
         }
         async update(req, res) {
-            const { id } = req.params;
-            
             /*
             payload={
-            id:id
-            status:1
+                "status":1
             }
             */
+            const { id } = req.params;  // Get the id from URL parameter
             try {
-                const bill = await BillService.getById(id);
-                if (!bill) {
-                    return res.status(404).json({ status: 404, message: 'Not Found' });
-                }
-    
+                // Directly call the update method of the service
                 const updatedRecord = await BillService.update(id, req.body);
-    
-                return res.status(200).json({
-                    status: 200,
-                    message: 'success',
-                    data: updatedRecord,
+                
+                if (updatedRecord.status === 404) {
+                    return res.status(404).json({ status: 404, message: updatedRecord.message });
+                }
+        
+                return res.status(updatedRecord.status).json({
+                    status: updatedRecord.status,
+                    message: updatedRecord.message,
                 });
             } catch (error) {
                 return res.status(500).json({ status: 500, message: 'Server Error', error: error.message });
             }
         }
+        
     
         async delete(req, res) {
             const { id } = req.params;

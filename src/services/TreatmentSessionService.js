@@ -10,6 +10,7 @@ class TreatmentSessionService extends BaseService {
     }
     async createPivotMedicalOrder(payload) {// chỉ định dịch vụ cho bệnh nhân., sau khi bệnh nhân được chỉ định thì status của medicalrecord chuyển thành 1 và có thêm bảng medical_record_service
         /*
+        http://localhost:8000/api/treatmentSessions/createPivotMedicalOrder
         payload gửi vào:
             const payload = {
               medical_record_id: Number(medical_record_id), // ID của hồ sơ bệnh án
@@ -89,10 +90,10 @@ class TreatmentSessionService extends BaseService {
             return false;
         }
     }
-    async save(payload) {
+    async update(id,payload) {
         const transaction = await sequelize.transaction();
         try {
-            const treatment_session = await TreatmentSession.findByPk(payload.treatment_session_id, { transaction });
+            const treatment_session = await TreatmentSession.findByPk(id, { transaction });
     
             if (!treatment_session) {
                 await transaction.rollback();
@@ -100,8 +101,8 @@ class TreatmentSessionService extends BaseService {
             }
     
             // Cập nhật TreatmentSession
-            await TreatmentSession.update(payload.medical_record.data, {
-                where: { id: payload.treatment_session_id },
+            await TreatmentSession.update(payload, {
+                where: { id:id },
                 transaction,
             });
     

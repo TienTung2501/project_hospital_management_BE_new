@@ -1,5 +1,5 @@
 const PatientService = require('../services/PatientService');
-const {MedicalRecord, Service, User, Medication,MedicalRecordService} =require('../models')
+const {MedicalRecord, Service, User, Medication,MedicalRecordServiceModel,TreatmentSession,MedicalOrder,DailyHealth,MedicalRecordMedication,AdvancePayment} =require('../models')
 const patientService = new PatientService();
 const { Op } = require("sequelize");
 
@@ -94,15 +94,44 @@ class PatientController {
             where: { diagnosis: { [Op.ne]: null } }, // Điều kiện where
             required: false, // Không loại bỏ bệnh nhân nếu không có medicalRecords
             include: [
-                {
-                  model: Service,
-                  as: "services",
-                  through: {
-                    model: MedicalRecordService,
-                  },
+                { 
+                    model: TreatmentSession, 
+                    as: "treatment_sessions",
+                    include: [
+                        { 
+                            model: MedicalOrder, 
+                            as: "medical_orders" 
+                        },
+                        { 
+                            model: DailyHealth, 
+                            as: "daily_healths" 
+                        },
+                        { 
+                            model: AdvancePayment, 
+                            as: "advance_payments" 
+                        }
+                    ], 
+                    required: false, 
+                },
+                { 
+                    model: MedicalRecordServiceModel, 
+                       as: "medical_record_service", 
+                    include: [{ 
+                        model: Service, 
+                        as: "services" 
+                    }],
+                    required: false, 
                 },
                 { model: User, as: "users" },
-                { model: Medication, as: "medications" }
+                { 
+                    model: MedicalRecordMedication, 
+                       as: "medical_record_medication", 
+                    include: [{ 
+                        model: Medication, 
+                        as: "medications" 
+                    }],
+                    required: false, 
+                },
               ]
               
           },

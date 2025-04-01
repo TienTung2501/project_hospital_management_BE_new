@@ -10,6 +10,10 @@ MedicalRecordMedication.init(
       autoIncrement: true,
       primaryKey: true,
     },
+    bill_id: {
+      type: DataTypes.BIGINT.UNSIGNED,
+      allowNull: true,
+    },
     medical_record_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
@@ -33,7 +37,8 @@ MedicalRecordMedication.init(
       description: {
         type: DataTypes.TEXT,
         allowNull: true
-      }
+      },
+      payment_status:{ type: DataTypes.INTEGER, defaultValue: 0 },
   },
   {
     sequelize,

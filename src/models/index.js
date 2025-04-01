@@ -47,57 +47,72 @@ User.hasMany(MedicalRecord, { foreignKey: 'user_id', as: 'medical_records' });
 // 🔹 Service
 Service.belongsTo(ServiceCatalogue, { foreignKey: "service_catalogue_id", as: "service_catalogues" });
 Service.belongsTo(RoomCatalogue, { foreignKey: "room_catalogue_id", as: "room_catalogues" });
-Service.belongsToMany(MedicalRecord, { 
-  through: MedicalRecordServiceModel, 
-  foreignKey: "service_id", 
-  otherKey: "medical_record_id", 
-  as: "medical_records" 
-});
-Service.hasMany(MedicalRecordServiceModel, { foreignKey: 'service_id', as: 'medical_record_service' });
+
+
 
 // 🔹 MedicalRecord
 MedicalRecord.belongsTo(User, { foreignKey: 'user_id', as: 'users' });
 MedicalRecord.belongsTo(Patient, { foreignKey: "patient_id", as: "patients" });
 // MedicalRecord.belongsToMany(Service, { through: MedicalRecordServiceModelRelation, foreignKey: "medical_record_id", otherKey: "service_id", as: "services" });
- MedicalRecord.belongsToMany(Medication, { through: MedicalRecordMedication, foreignKey: "medical_record_id", otherKey: "medication_id", as: "medications" });
- MedicalRecord.belongsToMany(Service, {  through: MedicalRecordServiceModel,   foreignKey: "medical_record_id",   otherKey: "service_id",   as: "services" });
- MedicalRecord.hasMany(MedicalRecordServiceModel, {
-  foreignKey: "medical_record_id",
-  as: "medical_record_service", // Đặt alias khớp với truy vấn SQL
-});
+
  MedicalRecord.hasMany(TreatmentSession, {
   foreignKey: "medical_record_id",
-  as: "treatment_sesions", // Đặt alias khớp với truy vấn SQL
+  as: "treatment_sessions", // Đặt alias khớp với truy vấn SQL
 });
 
 
-TreatmentSession.belongsTo(MedicalRecord, { foreignKey: 'medical_record_id' });
-DailyHealth.belongsTo(TreatmentSession, { foreignKey: 'treatment_session_id' });
-MedicalOrder.belongsTo(TreatmentSession, { foreignKey: 'treatment_session_id' });
-TreatmentSession.hasMany(MedicalOrder, { foreignKey: 'treatment_session_id' });
-TreatmentSession.hasMany(DailyHealth, { foreignKey: 'treatment_session_id' });
+TreatmentSession.belongsTo(MedicalRecord, { foreignKey: 'medical_record_id',as:"medical_records" });
+DailyHealth.belongsTo(TreatmentSession, { foreignKey: 'treatment_session_id',as:"treatment_sessions" });
+MedicalOrder.belongsTo(TreatmentSession, { foreignKey: 'treatment_session_id',as:"treatment_sessions" });
+AdvancePayment.belongsTo(TreatmentSession, { foreignKey: 'treatment_session_id',as:"treatment_sessions" });
+TreatmentSession.hasMany(MedicalOrder, { foreignKey: 'treatment_session_id',as:"medical_orders" });
+TreatmentSession.hasMany(DailyHealth, { foreignKey: 'treatment_session_id',as:"daily_healths" });
+TreatmentSession.hasMany(AdvancePayment, { foreignKey: 'treatment_session_id',as:"advance_payments" });
 
+
+// với service pivote
+MedicalRecord.hasMany(MedicalRecordServiceModel, {
+  foreignKey: "medical_record_id",
+  as: "medical_record_service",
+});
 MedicalRecordServiceModel.belongsTo(MedicalRecord, {
   foreignKey: "medical_record_id",
   as: "medical_records",
 });
 
-MedicalRecordServiceModel.belongsTo(Service, { foreignKey: "service_id", as: "services" });
-Medication.belongsToMany(MedicalRecord, {
-  through: MedicalRecordMedication,
-  foreignKey: "medication_id",
-  otherKey: "medical_record_id",
+// 1 MedicalRecordServiceModel thuộc 1 Service
+MedicalRecordServiceModel.belongsTo(Service, {
+  foreignKey: "service_id",
+  as: "services",
+});
+Service.hasMany(MedicalRecordServiceModel, {
+  foreignKey: "service_id",
+  as: "medical_record_service",
 });
 
-// Quan hệ: Một TreatmentSession có nhiều hóa đơn
-
-// 🔹 Quan hệ 1-N: Một MedicalRecord có nhiều MedicalRecordMedication
+// với medication pivot
+// MedicalRecord có nhiều MedicalRecordMedication
 MedicalRecord.hasMany(MedicalRecordMedication, {
   foreignKey: "medical_record_id",
+  as: "medical_record_medication",
 });
 MedicalRecordMedication.belongsTo(MedicalRecord, {
   foreignKey: "medical_record_id",
+  as: "medical_records",
 });
+
+// MedicalRecordMedication thuộc 1 Medication
+MedicalRecordMedication.belongsTo(Medication, {
+  foreignKey: "medication_id",
+  as: "medications",
+});
+Medication.hasMany(MedicalRecordMedication, {
+  foreignKey: "medication_id",
+  as: "medical_record_medication",
+});
+
+
+
 MedicalOrder.belongsTo(TreatmentSession, { foreignKey: 'treatment_session_id' });
 // 🔹 Quan hệ 1-N: Một Medication có nhiều MedicalRecordMedication
 Medication.hasMany(MedicalRecordMedication, {
@@ -134,5 +149,5 @@ module.exports = {
   sequelize, syncDatabase, 
   Department, User, Room, RoomCatalogue, Position, Permission, 
   Service, ServiceCatalogue, Bed, MedicalRecord, MedicalRecordServiceModel, MedicalRecordMedication,
-  Medication, MedicationCatalogue, Patient ,TreatmentSession,MedicalOrder,DailyHealth,Bill,BillDetail
+  Medication, MedicationCatalogue, Patient ,TreatmentSession,MedicalOrder,DailyHealth,Bill,BillDetail,AdvancePayment
 };

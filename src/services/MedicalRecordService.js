@@ -79,144 +79,138 @@ class MedicalRecordService extends BaseService {
 
     async createPivotService(payload) {
         // Bắt đầu transaction
-        /*
-         const payload_service={
-                treatment_session_id:payload.treatment_session_id||null,
-                medical_record_id: payload.medical_record_id, // ID của hồ sơ bệnh án
-                services: payload.order_detail
-            }
-        */
-        const transaction = await sequelize.transaction();
-        try {
-            // 📌 Chuẩn bị dữ liệu cho MedicalRecordServiceModel
-            let pivotData = payload.services.map(item => ({
-                medical_record_id: payload.medical_record_id,
-                service_id: item.service_id,
-                service_name: item.service_name,
-                room_id: item.room_id,
-                patient_id: item.patient_id
-            }));
-    
-            // 🔍 Tìm hồ sơ y tế
-            let medicalRecord = await MedicalRecord.findByPk(payload.medical_record_id, { transaction });
-    
-            if (!medicalRecord) {
-                await transaction.rollback();
-                return [];
-            }
-    
-            // ➕ Tạo bản ghi trong MedicalRecordServiceModel và lấy danh sách ID được tạo
-            let createdRecords = await MedicalRecordServiceModel.bulkCreate(pivotData, {
-                transaction,
-                returning: true // ✅ Lấy danh sách ID của các bản ghi vừa tạo
-            });
-    
-            // 📌 Trích xuất danh sách ID (pivot_id)
-            let pivotIds = createdRecords.map(record => record.id);
-            console.log("✅ Danh sách pivot_id:", pivotIds);
-    
-            // 🔄 Tạo hóa đơn (Bill) cho từng dịch vụ
-            for (let i = 0; i < pivotIds.length; i++) {
-                let billPayload = {
-                    patient_id:payload.patient_id,
-                    treatment_session_id: payload.treatment_session_id, // Vì đây là dịch vụ ngoại trú
-                    bill_type: "services",
-                    pivot_id: pivotIds[i], // Gán pivot_id từ dịch vụ vừa tạo
-                };
-    
-                // ➕ Tạo hóa đơn
-                let bill = await Bill.create(billPayload, { transaction });
-                console.log("Hóa đơn được tạo:", bill.id);
-    
-                // 📌 Chuẩn bị dữ liệu BillDetail cho dịch vụ
-                let billDetailPayload = {
-                    bill_id: bill.id,
-                    model_id: payload.services[i].service_id, // Gán ID dịch vụ
-                    model_type: "services",
-                };
-    
-                // ➕ Tạo chi tiết hóa đơn (BillDetail)
-                await BillDetail.create(billDetailPayload, { transaction });
-                console.log("✅ Chi tiết hóa đơn được tạo:", billDetailPayload);
-            }
-    
-            // Cập nhật trạng thái hồ sơ y tế
-            await medicalRecord.update({ status: 1 }, { transaction });
-    
-            // Commit transaction
-            await transaction.commit();
-            return pivotIds; // Trả về danh sách pivot_id
-        } catch (error) {
-            // Rollback transaction nếu có lỗi
+       // Bắt đầu transaction
+    const transaction = await sequelize.transaction();
+    try {
+        // 🔍 Tìm hồ sơ y tế
+        let medicalRecord = await MedicalRecord.findByPk(payload.medical_record_id, { transaction });
+
+        if (!medicalRecord) {
             await transaction.rollback();
-            console.error(error);
             return [];
         }
+
+        let billIds = [];
+
+        for (let i = 0; i < payload.services.length; i++) {
+            // ➕ Tạo hóa đơn (Bill) cho từng dịch vụ
+            let billPayload = {
+                patient_id: payload.patient_id,
+                treatment_session_id: payload.treatment_session_id,
+                bill_type: "services",
+            };
+
+            let bill = await Bill.create(billPayload, { transaction });
+            billIds.push(bill.id);
+
+            // 📌 Tạo chi tiết hóa đơn (BillDetail)
+            let billDetailPayload = {
+                bill_id: bill.id,
+                model_id: payload.services[i].service_id,
+                model_type: "services",
+                quantity: 1, // Giả sử số lượng mặc định là 1, có thể thay đổi nếu cần
+                total_price: payload.services[i].price, // Tổng giá của dịch vụ
+                total_insurance_covered: payload.services[i].insurance_covered || 0, // Bảo hiểm chi trả
+            };
+
+            await BillDetail.create(billDetailPayload, { transaction });
+
+            // 🔄 Cập nhật lại tổng tiền Bill sau khi thêm BillDetail
+            await Bill.updateBill(bill.id, transaction);
+        }
+
+        // 📌 Chuẩn bị dữ liệu cho MedicalRecordServiceModel
+        let pivotData = payload.services.map((item, index) => ({
+            medical_record_id: payload.medical_record_id,
+            service_id: item.service_id,
+            service_name: item.service_name,
+            room_id: item.room_id,
+            patient_id: item.patient_id,
+            bill_id: billIds[index], // Gán bill_id từ hóa đơn tương ứng
+        }));
+
+        let createdRecords = await MedicalRecordServiceModel.bulkCreate(pivotData, {
+            transaction,
+            returning: true, 
+        });
+
+        let pivotIds = createdRecords.map(record => record.id);
+
+        // ✅ Cập nhật trạng thái hồ sơ y tế
+        await medicalRecord.update({ status: 1 }, { transaction });
+
+        // ✅ Commit transaction nếu mọi thứ thành công
+        await transaction.commit();
+        return pivotIds;
+
+    } catch (error) {
+        // ❌ Rollback transaction nếu có lỗi
+        await transaction.rollback();
+        console.error("🚨 Lỗi trong createPivotService:", error);
+        return [];
+    }
     }
     
+    
     async createPivotMedication(payload) {
-        // Bắt đầu transaction
-        /*
-         const payload_medication={
-                treatment_session_id:payload.treatment_session_id||null,
-                medical_record_id: payload.medical_record_id, // ID của hồ sơ bệnh án
-                medications: payload.order_detail
-            }
-        */
         const transaction = await sequelize.transaction();
         try {
-            // 📌 Chuẩn bị dữ liệu cho MedicalRecordMedication
-            let pivotData = payload.medications.data.map(item => ({
-                medical_record_id: payload.medical_record.medical_record_id,
+            // Tạo hóa đơn (Bill) trước khi tiếp tục các bước khác
+            let billPayload = {
+                patient_id: payload.patient_id,
+                treatment_session_id: payload.treatment_session_id,
+                bill_type: "medications",
+            };
+    
+            let bill = await Bill.create(billPayload, { transaction });
+    
+        
+            // Tạo BillDetail sau khi đã có Bill
+            for (let item of payload.medications) {
+                let billDetail = {
+                    bill_id: bill.id, // Đảm bảo sử dụng Bill ID vừa tạo
+                    quantity: item.dosage,
+                    model_id: item.medication_id,
+                    model_type: "medications",
+                };
+                await BillDetail.create(billDetail, { transaction });
+            }
+    
+            // Tạo MedicalRecordMedication
+            let pivotData = payload.medications.map(item => ({
+                medical_record_id: payload.medical_record_id,
                 medication_id: item.medication_id,
                 name: item.name,
                 dosage: item.dosage,
                 unit: item.unit,
                 description: item.description,
-            }));
-    
-            // ➕ Tạo bản ghi trong MedicalRecordMedication và lấy danh sách ID được tạo
-            let createdRecords = await MedicalRecordMedication.bulkCreate(pivotData, { 
-                transaction, 
-                returning: true // ✅ Lấy danh sách ID của các bản ghi vừa tạo
-            });
-    
-            // 📌 Trích xuất danh sách ID (pivot_id)
-            let pivotIds = createdRecords.map(record => record.id);
-            console.log("✅ Danh sách pivot_id:", pivotIds);
-    
-            // 🔄 Tạo một hóa đơn duy nhất (Bill)
-            let billPayload = {
-                patient_id:payload.patient_id,
-                treatment_session_id: payload.treatment_session_id, // Vì đây là thuốc cho bệnh nhân ngoại trú
-                bill_type: "medications",
-                pivot_id: null, // Không cần gán vì thuốc không có pivot cụ thể
-            };
-    
-            let bill = await Bill.create(billPayload, { transaction });
-            console.log("✅ Hóa đơn được tạo:", bill.id);
-    
-            // 🔄 Tạo nhiều chi tiết hóa đơn (BillDetail)
-            let billDetailsPayload = payload.medications.data.map((item, index) => ({
                 bill_id: bill.id,
-                quantity:item.dosage,
-                model_id: item.medication_id, // ID của thuốc
-                model_type: "medications",
             }));
     
-            await BillDetail.bulkCreate(billDetailsPayload, { transaction });
-            console.log("Danh sách chi tiết hóa đơn được tạo:", billDetailsPayload);
+            let createdRecords = await MedicalRecordMedication.bulkCreate(pivotData, {
+                transaction,
+                returning: true,
+            });
+            // ✅ Cập nhật lại Bill NGAY TRONG TRANSACTION
+            await Bill.updateBill(bill.id, transaction);
+            let pivotIds = createdRecords.map(record => record.id);
     
-            //Commit transaction nếu mọi thứ thành công
+            // Commit transaction sau khi tất cả các thao tác đã hoàn tất
             await transaction.commit();
-            return pivotIds; // Trả về danh sách pivot_id
+            return pivotIds;
+    
         } catch (error) {
-            //Rollback transaction nếu có lỗi
+            // Log lỗi chi tiết và rollback transaction
+            console.error("🚨 Lỗi xảy ra:", error);
             await transaction.rollback();
-            console.error(error);
             return []; // Trả về mảng rỗng nếu có lỗi
         }
     }
+    
+    
+    
+    
+    
     
     
     

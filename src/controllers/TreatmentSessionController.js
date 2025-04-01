@@ -90,9 +90,16 @@ class TreatmentSessionController{
                 return res.status(500).json({ status: 500, message: 'Server Error', error: error.message });
             }
         }
-        async save(req, res) {
+        async update(req, res) {
+            /*
+            payload={
+            "conclusion_of_treatment":"Bệnh tiến triển tốt, các chỉ số đều ổn, kiểm tra toàn bộ thấy chức năng cấu tạo không có bất thường. Có thể xuất viện."
+            "status:"1
+            }
+            */
+            const { id } = req.params;  // Get the id from URL parameter
             try {
-                const flag = await TreatmentSessionService.save(req.body);
+                const flag = await TreatmentSessionService.update(id,req.body);
     
                 return res.status(flag ? 200 : 500).json({
                     status: flag ? 200 : 500,

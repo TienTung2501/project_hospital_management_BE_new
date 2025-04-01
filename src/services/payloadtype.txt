@@ -1,0 +1,48 @@
+method post: http://localhost:8000/api/treatmentSession/createPivotMedicalOrder 
+{
+    "medical_record_id": 33, // ID hồ sơ bệnh án
+    "treatment_session_id": 1, // ID của đợt điều trị (giả định cùng ID với hồ sơ)
+    "patient_id":24,
+    "order_type": "services", // Loại đơn hàng (dịch vụ)
+    "order_detail": [
+        {
+            "service_id": 1,
+            "service_name": "Xét nghiệm máu",
+            "room_id": 32,
+            "patient_id": 24
+        },
+        {
+            "service_id": 2,
+            "service_name": "Xét nghiệm nước tiểu",
+            "room_id": 33,
+            "patient_id": 24
+        }
+    ],
+    "notes": "Cần nhập viện điều trị, tránh tai biến sau này"
+}
+
+http://localhost:8000/api/treatmentSession/createPivotMedicalOrder
+
+{
+    "medical_record_id": 33, // ID của hồ sơ bệnh án (lấy từ bảng pivot)
+    "treatment_session_id": 1, // ID của đợt điều trị
+    "patient_id": 24, // ID của bệnh nhân
+    "order_type": "medications", // Loại order
+    "order_detail": [
+        {
+            "medication_id": 1, // ID của thuốc (lấy từ bảng pivot)
+            "name": "Thuốc Morphine", // Tên thuốc (lấy từ bảng pivot)
+            "dosage": "10", // Liều lượng (lấy từ bảng pivot)
+            "unit": "viên", // Đơn vị (lấy từ bảng pivot)
+            "description": "Ngày uống 2 lần sau ăn, mỗi lần uống 1 viên. Uống vào sáng tối" // Mô tả (lấy từ bảng pivot)
+        },
+        {
+            "medication_id": 2, // ID của thuốc (lấy từ bảng pivot)
+            "name": "Thuốc Aspirin", // Tên thuốc (lấy từ bảng pivot)
+            "dosage": "20", // Liều lượng (lấy từ bảng pivot)
+            "unit": "viên", // Đơn vị (lấy từ bảng pivot)
+            "description": "Ngày uống 2 lần sau ăn, mỗi lần uống 1 viên. Uống vào sáng tối" // Mô tả (lấy từ bảng pivot)
+        }
+    ],
+   "notes": "Thuốc dùng theo đơn bác sĩ đã kê" // Ghi chú cho đơn thuốc
+}

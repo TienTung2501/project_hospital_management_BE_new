@@ -1,7 +1,8 @@
 const medicalRecordService = require('../services/MedicalRecordService');
-const {Patient, Service,User, MedicalRecordServiceModel, Medication, MedicalRecordMedication, TreatmentSession} =require('../models')
+const {Patient, Service,User, MedicalRecordServiceModel, Medication, MedicalRecordMedication, TreatmentSession, MedicalOrder, DailyHealth,AdvancePayment} =require('../models')
 const { Op,Sequelize } = require('sequelize');
 const moment = require("moment");
+
 class MedicalRecordController {
     constructor() {
         this.getMedicalRecordList = this.getMedicalRecordList.bind(this);
@@ -37,7 +38,7 @@ class MedicalRecordController {
           
             //http://localhost:8000/api/medicalRecords/waitDiagnosis?date=2025-03-16 nếu truyền vào date
             //http://localhost:8000/api/medicalRecords/list?date=2025-03-16 nếu truyền vào date
-            whereCondition.visit_date = { [Op.between]: [dayStart, dayEnd] };
+           // whereCondition.visit_date = { [Op.between]: [dayStart, dayEnd] };
 
             // if (statusValue === 0) {
             //     whereCondition.diagnosis = { [Op.is]: null }; // ✅ Sửa lỗi dấu `:`
@@ -59,21 +60,19 @@ class MedicalRecordController {
                     where: keyword ? { name: { [Op.like]: `%${keyword}%` } } : undefined,
                     required: false,
                 },
-                {
-                    model: Service,
-                    as: "services",
-                    duplicating: true,
-                    through: {
-                        model: MedicalRecordServiceModel,
-                        where: {
-                            ...(room_id !== undefined && statusValue === 0 ? { room_id } : {}), // ✅ Đóng dấu ngoặc {}
-                        },
-                        required: true, // ⚠️ Đổi thành true để bắt buộc có dữ liệu
+                { 
+                    model: MedicalRecordServiceModel, 
+                    where: {
+                        ...(room_id !== undefined && statusValue === 0 ? { room_id, result_details: null } : {}),
+                        ...(statusValue === 0 ? { result_details: null,payment_status:1 } : {}),
                     },
-                    required: false,
-                }
-                
-                
+                    as: "medical_record_service", 
+                    include: [{ 
+                        model: Service, 
+                        as: "services" 
+                    }],
+                    required: true, 
+                },
             ];
             
             // Gọi hàm lấy dữ liệu
@@ -111,28 +110,51 @@ class MedicalRecordController {
             where: whereCondition,
             limit,
             order: [['visit_date', 'ASC']],
-            relations:[
-                { model: Patient, as: 'patients' },
-                { model: Service,
-                    as: "services",
-                    duplicating: true,
-                    through: {
-                        model: MedicalRecordServiceModel,
-                    },
-                    required: false, },
-                { model: Medication,
-                    as: "medications",
-                    duplicating: true,
-                    through: {
-                        model: MedicalRecordMedication,
-                    },
-                    required: false, },
-                { model: TreatmentSession,
-                    as: "treatment_sesions",
-                    required: false, },
-            ]
-
+            relations: [
+                { 
+                    model: Patient, 
+                    as: 'patients' 
+                },
+                { 
+                    model: MedicalRecordServiceModel, 
+                    as: "medical_record_service", 
+                    include: [{ 
+                        model: Service, 
+                        as: "services" 
+                    }],
+                    required: false, 
+                },
+                { 
+                    model: MedicalRecordMedication, 
+                    as: "medical_record_medication", 
+                    include: [{ 
+                        model: Medication, 
+                        as: "medications" 
+                    }],
+                    required: false, 
+                },
+                { 
+                    model: TreatmentSession, 
+                    as: "treatment_sessions",
+                    include: [
+                        { 
+                            model: MedicalOrder, 
+                            as: "medical_orders" 
+                        },
+                        { 
+                            model: DailyHealth, 
+                            as: "daily_healths" 
+                        },
+                        { 
+                            model: AdvancePayment, 
+                            as: "advance_payments" 
+                        }
+                    ], 
+                    required: false, 
+                },
+            ],
         };
+        
         const medicalRecords = await medicalRecordService.paginate(options);
         if (medicalRecords.rows.length > 0) {
             return res.status(200).json({
