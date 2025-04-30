@@ -6,7 +6,7 @@ class BillController{
         async index(req, res) {
             const { keyword, status, limit = 20, room_id,date } = req.query;
             const whereCondition={}
-            // if (status) whereCondition.status = status;
+            if (status) whereCondition.status = status;
             if (room_id) whereCondition.room_id = room_id;
                 // Lấy ngày hôm nay theo chuẩn UTC (00:00:00 - 23:59:59)
                 const patientWhereCondition = keyword
@@ -20,7 +20,6 @@ class BillController{
                   
             //http://localhost:8000/api/medicalRecords/waitDiagnosis?date=2025-03-16 nếu truyền vào date
             //http://localhost:8000/api/medicalRecords/list?date=2025-03-16 nếu truyền vào date
-             whereCondition.status =0;
             const options = {
                 where: whereCondition,
                 limit,

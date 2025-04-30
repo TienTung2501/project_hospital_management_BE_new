@@ -23,13 +23,9 @@ class MedicalRecordController {
             const { id, keyword, limit, room_id, date  } = query;
             const statusValue = status; // ✅ Gán giá trị đúng
 
-            // let whereCondition = {
-            //     diagnosis: { [Op.is]: null },
-            // };
             let whereCondition = {
                 // diagnosis: { [Op.is]: null },
             };
-            
               // Lấy ngày hôm nay theo chuẩn UTC (00:00:00 - 23:59:59)
             const selectedDate = date ? moment.utc(date, "YYYY-MM-DD") : moment.utc();
             // Lấy khoảng thời gian từ 00:00:00 - 23:59:59 của ngày đã chọn
@@ -38,40 +34,78 @@ class MedicalRecordController {
           
             //http://localhost:8000/api/medicalRecords/waitDiagnosis?date=2025-03-16 nếu truyền vào date
             //http://localhost:8000/api/medicalRecords/list?date=2025-03-16 nếu truyền vào date
-           // whereCondition.visit_date = { [Op.between]: [dayStart, dayEnd] };
-
-            // if (statusValue === 0) {
-            //     whereCondition.diagnosis = { [Op.is]: null }; // ✅ Sửa lỗi dấu `:`
-            // }
+            // whereCondition.visit_date = { [Op.between]: [dayStart, dayEnd] };
             
             if(room_id !== undefined&& statusValue === 1) whereCondition.room_id=room_id;
             if (id !== undefined) whereCondition.id = id;
-            if (keyword) {
-                whereCondition[Op.or] = [
-                    { name: { [Op.like]: `%${keyword}%` } },
-                    { cccd_number: { [Op.like]: `%${keyword}%` } },
-                ];
-            }
             const relations = [
                 { model: User, as: 'users' }, // Quan hệ với User
                 {
                     model: Patient,
                     as: 'patients',
-                    where: keyword ? { name: { [Op.like]: `%${keyword}%` } } : undefined,
-                    required: false,
+                    where: keyword
+                    ? {
+                        [Op.or]: [
+                            { name: { [Op.like]: `%${keyword}%` } },
+                            { cccd_number: { [Op.like]: `%${keyword}%` } },
+                            { phone: { [Op.like]: `%${keyword}%` } }
+                        ]
+                        }
+                    : undefined,
+                    required: true,
                 },
                 { 
                     model: MedicalRecordServiceModel, 
                     where: {
                         ...(room_id !== undefined && statusValue === 0 ? { room_id, result_details: null } : {}),
-                        ...(statusValue === 0 ? { result_details: null,payment_status:1 } : {}),
-                    },
+                        ...(statusValue === 0 ? { result_details: null, payment_status: 1 } : {}),
+                        ...(statusValue === 1 && {
+                          id: {
+                            [Op.notIn]: Sequelize.literal(`(
+                              SELECT medical_record_service.id
+                              FROM medical_record_service
+                              WHERE EXISTS (
+                                SELECT 1
+                                FROM treatment_sessions
+                                JOIN medical_orders 
+                                  ON treatment_sessions.id = medical_orders.treatment_session_id
+                                WHERE treatment_sessions.medical_record_id = medical_record_service.medical_record_id
+                                  AND JSON_UNQUOTE(JSON_EXTRACT(medical_orders.detail, '$.type')) = 'services'
+                                  AND JSON_CONTAINS(
+                                    JSON_EXTRACT(medical_orders.detail, '$.pivot_ids'),
+                                    JSON_ARRAY(medical_record_service.id))
+                              )
+                            )`)
+                          },
+                          result_details: { [Op.not]: null } // ✅ Gộp logic "đã có kết quả"
+                        })
+                      },
+                      
                     as: "medical_record_service", 
                     include: [{ 
                         model: Service, 
                         as: "services" 
                     }],
                     required: true, 
+                },
+                { 
+                    model: TreatmentSession, 
+                    as: "treatment_sessions",
+                    include: [
+                        { 
+                            model: MedicalOrder, 
+                            as: "medical_orders" 
+                        },
+                        { 
+                            model: DailyHealth, 
+                            as: "daily_healths" 
+                        },
+                        { 
+                            model: AdvancePayment, 
+                            as: "advance_payments" 
+                        }
+                    ], 
+                    required: false, 
                 },
             ];
             
@@ -81,6 +115,7 @@ class MedicalRecordController {
                 status: medicalRecords.length ? 200 : 204,
                 message: medicalRecords.length ? "success" : "No Data",
                 data: id ? medicalRecords[0] : medicalRecords,
+                total: medicalRecords.length,
             });
         } catch (error) {
             console.error("Error fetching medical records:", error);
@@ -97,15 +132,15 @@ class MedicalRecordController {
         const whereCondition = {};
         // if (status) whereCondition.status = status;
         if (room_id) whereCondition.room_id = room_id;
+        if (status) whereCondition.status = status;
            // Lấy ngày hôm nay theo chuẩn UTC (00:00:00 - 23:59:59)
         const selectedDate = date ? moment.utc(date, "YYYY-MM-DD") : moment.utc();
         // Lấy khoảng thời gian từ 00:00:00 - 23:59:59 của ngày đã chọn
         const dayStart = selectedDate.startOf("day").toISOString(); // 2025-03-20T00:00:00.000Z
         const dayEnd = selectedDate.endOf("day").toISOString();   // 2025-03-20T23:59:59.999Z
-        
         //http://localhost:8000/api/medicalRecords/waitDiagnosis?date=2025-03-16 nếu truyền vào date
         //http://localhost:8000/api/medicalRecords/list?date=2025-03-16 nếu truyền vào date
-        //whereCondition.visit_date = { [Op.between]: [dayStart, dayEnd] };
+        // whereCondition.visit_date = { [Op.between]: [dayStart, dayEnd] };
         const options = {
             where: whereCondition,
             limit,
@@ -113,7 +148,18 @@ class MedicalRecordController {
             relations: [
                 { 
                     model: Patient, 
-                    as: 'patients' 
+                    as: 'patients' ,
+                    where: keyword
+                    ? {
+                        [Op.or]: [
+                            { name: { [Op.like]: `%${keyword}%` } },
+                            { cccd_number: { [Op.like]: `%${keyword}%` } },
+                            { phone: { [Op.like]: `%${keyword}%` } }
+                        ]
+                        }
+                    : undefined,
+                    required: true,
+
                 },
                 { 
                     model: MedicalRecordServiceModel, 

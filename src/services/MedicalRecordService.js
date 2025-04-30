@@ -20,20 +20,20 @@ class MedicalRecordService extends BaseService {
             if(isDiagnosis!==1){
                 query.where.status=1;
             }
-            
-            if (isDiagnosis===1) {
-                query.where[Op.and] = [
-                    Sequelize.literal(`
-                        (SELECT COUNT(*) FROM medical_record_service 
-                         WHERE medical_record_service.medical_record_id = MedicalRecord.id 
-                         AND medical_record_service.result_details IS NOT NULL) = 
-                        (SELECT COUNT(*) FROM medical_record_service 
-                         WHERE medical_record_service.medical_record_id = MedicalRecord.id)
-                    `)
-                ];
-                //query.where.status=1;
-            }
-            console.log(query);
+            // console.log("isDiagnosis",isDiagnosis);
+            // if (isDiagnosis===1) {
+            //     query.where[Op.and] = [
+            //         Sequelize.literal(`
+            //             (SELECT COUNT(*) FROM medical_record_service 
+            //              WHERE medical_record_service.medical_record_id = MedicalRecord.id 
+            //              AND medical_record_service.result_details IS NOT NULL) = 
+            //             (SELECT COUNT(*) FROM medical_record_service 
+            //              WHERE medical_record_service.medical_record_id = MedicalRecord.id)
+            //         `)
+            //     ];
+            //    //query.where.status=1;
+            // }
+            console.log("query",query);
             return await MedicalRecord.findAll(query);
         } catch (error) {
             console.error("Error in fetchMedicalRecords:", error);
