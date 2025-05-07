@@ -1,5 +1,5 @@
 const medicalRecordService = require('../services/MedicalRecordService');
-const {Patient, Service,User, MedicalRecordServiceModel, Medication, MedicalRecordMedication, TreatmentSession, MedicalOrder, DailyHealth,AdvancePayment} =require('../models')
+const {Patient,Bed, Service,User, MedicalRecordServiceModel, Medication, MedicalRecordMedication, TreatmentSession, MedicalOrder, DailyHealth,AdvancePayment,Department,Room} =require('../models')
 const { Op,Sequelize } = require('sequelize');
 const moment = require("moment");
 
@@ -127,7 +127,7 @@ class MedicalRecordController {
         }
     }
     async index(req, res) {
-        const { keyword, status, limit = 1, room_id,date } = req.query;
+        const { keyword, status, limit = 1, room_id,user_inpatient_id,room_inpatient_id,date } = req.query;
 
         const whereCondition = {};
         // if (status) whereCondition.status = status;
@@ -161,6 +161,7 @@ class MedicalRecordController {
                     required: true,
 
                 },
+                { model: User, as: "users" },
                 { 
                     model: MedicalRecordServiceModel, 
                     as: "medical_record_service", 
@@ -182,7 +183,17 @@ class MedicalRecordController {
                 { 
                     model: TreatmentSession, 
                     as: "treatment_sessions",
+                    where: {
+                        ...(room_inpatient_id !== undefined && { room_id: room_inpatient_id }),
+                        ...(user_inpatient_id !== undefined && { user_id: user_inpatient_id })
+                      },
+                      
+                      
                     include: [
+                        { model: Bed, as: "beds" },
+                        { model: User, as: "users" },
+                        { model: Department, as: "departments" },
+                        { model: Room, as: "rooms" },
                         { 
                             model: MedicalOrder, 
                             as: "medical_orders" 

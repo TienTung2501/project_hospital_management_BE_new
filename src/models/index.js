@@ -69,7 +69,14 @@ TreatmentSession.hasMany(MedicalOrder, { foreignKey: 'treatment_session_id',as:"
 TreatmentSession.hasMany(DailyHealth, { foreignKey: 'treatment_session_id',as:"daily_healths" });
 TreatmentSession.hasMany(AdvancePayment, { foreignKey: 'treatment_session_id',as:"advance_payments" });
 
-
+User.hasMany(TreatmentSession, { foreignKey: 'user_id', as: 'treatment_sessions' });
+TreatmentSession.belongsTo(User, { foreignKey: 'user_id', as: 'users' });
+Bed.hasMany(TreatmentSession, { foreignKey: 'bed_id', as: 'treatment_sessions' });
+TreatmentSession.belongsTo(Bed, { foreignKey: 'bed_id', as: 'beds' });
+Department.hasMany(TreatmentSession, { foreignKey: 'department_id', as: 'treatment_sessions' });
+TreatmentSession.belongsTo(Department, { foreignKey: 'department_id', as: 'departments' });
+Room.hasMany(TreatmentSession, { foreignKey: 'room_id', as: 'treatment_sessions' });
+TreatmentSession.belongsTo(Room, { foreignKey: 'room_id', as: 'rooms' });
 // với service pivote
 MedicalRecord.hasMany(MedicalRecordServiceModel, {
   foreignKey: "medical_record_id",

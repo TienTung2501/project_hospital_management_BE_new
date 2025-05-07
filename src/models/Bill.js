@@ -31,7 +31,7 @@ class Bill extends Model {
     // Cập nhật trường amount_due
     if (bill.bill_type === "beds" && bill.treatment_session_id) {
       const session = await TreatmentSession.findByPk(bill.treatment_session_id);
-      if (session) {
+      if (session&&session.total_advance_payment-bill.total_amount_due>0) {
         bill.total_paid = session.total_advance_payment; // Số tiền đã ứng
         bill.refunded_amount = session.total_advance_payment-bill.total_amount_due; // Số tiền đã hoàn lại
         bill.amount_due = session.current_cost - session.total_advance_payment>=0?session.current_cost - session.total_advance_payment:0; // Số tiền cần thanh toán

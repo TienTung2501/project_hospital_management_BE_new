@@ -34,6 +34,10 @@ MedicalRecordServiceModel.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
+    unit: {
+      type: DataTypes.STRING,
+      defaultValue:"Lần",
+    },
     quantity:{
       type:DataTypes.INTEGER,
       defaultValue:1

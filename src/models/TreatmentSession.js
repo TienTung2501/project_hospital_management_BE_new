@@ -20,6 +20,9 @@ TreatmentSession.init(
         allowNull: false, 
         references: { model: Bed, key: "id" } 
     },
+    user_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
+    room_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
+    department_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
     start_date: { 
         type: DataTypes.DATE, 
         allowNull: false, 
@@ -29,7 +32,7 @@ TreatmentSession.init(
     diagnosis: { type: DataTypes.TEXT, allowNull: true }, 
     notes: { type: DataTypes.TEXT, allowNull: true }, 
     conclusion_of_treatment: { type: DataTypes.TEXT, allowNull: true }, 
-    status: { type: DataTypes.INTEGER, defaultValue: 1 },
+    status: { type: DataTypes.INTEGER, defaultValue: 0 },
     current_cost: { type: DataTypes.DECIMAL(10, 2), allowNull: false, defaultValue: 0 }, 
     total_advance_payment: { type: DataTypes.DECIMAL(10, 2), allowNull: false, defaultValue: 0 }, 
     refunded_amount: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 }, 
@@ -46,11 +49,16 @@ async function calculateCosts(session) {
     if (!bed) return;
 
     const bedPricePerDay = bed.price;
-    const today = new Date();
+
+    // ✅ Nếu đã xuất viện, tính từ ngày vào đến ngày ra
+    const endDate = session.status === 0
+        ? new Date()                          // Đang nằm viện
+        : new Date(session.end_date);         // Đã xuất viện
+
     const startDate = new Date(session.start_date);
 
-    // Tính số ngày nằm viện
-    const daysInHospital = Math.max(1, Math.ceil((today - startDate) / (1000 * 60 * 60 * 24)));
+    // Tính số ngày nằm viện (ít nhất là 1 ngày)
+    const daysInHospital = Math.max(1, Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)));
 
     // 📌 Tính bảo hiểm hỗ trợ
     let insuranceDiscount = 0;
@@ -58,16 +66,18 @@ async function calculateCosts(session) {
         insuranceDiscount = (bed.health_insurance_value / 100) * (daysInHospital * bedPricePerDay);
     }
 
-    // 📌 Tính tổng chi phí sau khi trừ bảo hiểm
+    // 📌 Tính chi phí
     session.current_cost = (daysInHospital * bedPricePerDay) - insuranceDiscount;
 
-    // 📌 Tính tổng số tiền tạm ứng từ bảng `AdvancePayment`
+    // 📌 Tính tổng số tiền tạm ứng
     const totalAdvance = await AdvancePayment.sum("amount", {
         where: { treatment_session_id: session.id }
     });
 
     session.total_advance_payment = totalAdvance || 0;
 }
+
+
 
 // 📌 Hook trước khi tạo & cập nhật session
 TreatmentSession.beforeCreate(calculateCosts);

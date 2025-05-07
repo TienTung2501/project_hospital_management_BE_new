@@ -111,7 +111,9 @@ class TreatmentSessionService extends BaseService {
     
             // Giải phóng giường
             await Bed.update(
-                { patient_id: null }, 
+                { patient_id: null,
+                  status:0  
+                 }, 
                 { where: { id: treatment_session.bed_id }, transaction }
             );
     

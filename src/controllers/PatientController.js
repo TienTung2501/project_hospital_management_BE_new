@@ -1,5 +1,5 @@
 const PatientService = require('../services/PatientService');
-const {MedicalRecord, Service, User, Medication,MedicalRecordServiceModel,TreatmentSession,MedicalOrder,DailyHealth,MedicalRecordMedication,AdvancePayment} =require('../models')
+const {MedicalRecord, Service,Bed,Department,Room, User, Medication,MedicalRecordServiceModel,TreatmentSession,MedicalOrder,DailyHealth,MedicalRecordMedication,AdvancePayment} =require('../models')
 const patientService = new PatientService();
 const { Op } = require("sequelize");
 
@@ -98,6 +98,10 @@ class PatientController {
                     model: TreatmentSession, 
                     as: "treatment_sessions",
                     include: [
+                        { model: User, as: "users" },
+                        { model: Bed, as: "beds" },
+                        { model: Department, as: "departments" },
+                        { model: Room, as: "rooms" },
                         { 
                             model: MedicalOrder, 
                             as: "medical_orders" 

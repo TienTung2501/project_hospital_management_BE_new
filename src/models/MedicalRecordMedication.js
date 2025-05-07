@@ -30,7 +30,7 @@ MedicalRecordMedication.init(
         type: DataTypes.STRING,
         allowNull: false
       },
-      measure: {
+      unit: {
         type: DataTypes.STRING,
         allowNull: false
       },

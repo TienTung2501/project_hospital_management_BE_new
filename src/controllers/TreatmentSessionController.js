@@ -94,6 +94,7 @@ class TreatmentSessionController{
         async update(req, res) {
             /*
             payload={
+            patient_id:
             "conclusion_of_treatment":"Bệnh tiến triển tốt, các chỉ số đều ổn, kiểm tra toàn bộ thấy chức năng cấu tạo không có bất thường. Có thể xuất viện."
             "status:"1
             }
