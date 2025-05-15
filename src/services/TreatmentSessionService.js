@@ -66,7 +66,7 @@ class TreatmentSessionService extends BaseService {
                 medical_record_id: payload.medical_record_id, // ID của hồ sơ bệnh án
                 medications: payload.order_detail
             }
-            pivotId = await MedicalRecordService.createPivotMedication(payload_medication);
+            pivotId = await MedicalRecordService.createPivotMedication(payload_medication,transaction);
             // lấy id của pivot để lưu lại cho medical_order
         }
             let payload_medical_order = {

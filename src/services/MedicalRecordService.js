@@ -56,15 +56,21 @@ class MedicalRecordService extends BaseService {
                 await transaction.rollback();
                 return false;
             }
-    
+            const payload_medication = {
+            patient_id: payload.medical_record.patient_id,
+            treatment_session_id: payload.medical_record.treatment_session_id || null,
+            medical_record_id: payload.medical_record.medical_record_id,
+            medications: payload.medications, // ✅ Không cần `.data` nữa
+            };
+
             // 📌 Gọi `createPivotMedication()` để tạo các bản ghi thuốc
-            let pivotMedicationIds = await this.createPivotMedication(payload);
-    
+            console.log("payload_medication",payload_medication);
+            let pivotMedicationIds = await this.createPivotMedication(payload_medication,transaction);
             // 🔄 Cập nhật trạng thái hồ sơ y tế nếu có thuốc được chỉ định
             if (pivotMedicationIds.length > 0) {
                 await medicalRecord.update({ status: 1 }, { transaction });
             }
-    
+            
             // ✅ Commit transaction nếu mọi thứ thành công
             await transaction.commit();
             return true;
@@ -152,60 +158,51 @@ class MedicalRecordService extends BaseService {
     }
     
     
-    async createPivotMedication(payload) {
-        const transaction = await sequelize.transaction();
-        try {
-            // Tạo hóa đơn (Bill) trước khi tiếp tục các bước khác
-            let billPayload = {
-                patient_id: payload.patient_id,
-                treatment_session_id: payload.treatment_session_id,
-                bill_type: "medications",
-            };
-    
-            let bill = await Bill.create(billPayload, { transaction });
-    
-        
-            // Tạo BillDetail sau khi đã có Bill
-            for (let item of payload.medications) {
-                let billDetail = {
-                    bill_id: bill.id, // Đảm bảo sử dụng Bill ID vừa tạo
-                    quantity: item.dosage,
-                    model_id: item.medication_id,
-                    model_type: "medications",
-                };
-                await BillDetail.create(billDetail, { transaction });
-            }
-    
-            // Tạo MedicalRecordMedication
-            let pivotData = payload.medications.map(item => ({
-                medical_record_id: payload.medical_record_id,
-                medication_id: item.medication_id,
-                name: item.name,
-                dosage: item.dosage,
-                unit: item.unit,
-                description: item.description,
+async createPivotMedication(payload, transaction) {
+    try {
+        let billPayload = {
+            patient_id: payload.patient_id,
+            treatment_session_id: payload.treatment_session_id,
+            bill_type: "medications",
+        };
+
+        let bill = await Bill.create(billPayload, { transaction });
+
+        for (let item of payload.medications) {
+            let billDetail = {
                 bill_id: bill.id,
-            }));
-    
-            let createdRecords = await MedicalRecordMedication.bulkCreate(pivotData, {
-                transaction,
-                returning: true,
-            });
-            // ✅ Cập nhật lại Bill NGAY TRONG TRANSACTION
-            await Bill.updateBill(bill.id, transaction);
-            let pivotIds = createdRecords.map(record => record.id);
-    
-            // Commit transaction sau khi tất cả các thao tác đã hoàn tất
-            await transaction.commit();
-            return pivotIds;
-    
-        } catch (error) {
-            // Log lỗi chi tiết và rollback transaction
-            console.error("🚨 Lỗi xảy ra:", error);
-            await transaction.rollback();
-            return []; // Trả về mảng rỗng nếu có lỗi
+                quantity: item.dosage,
+                model_id: item.medication_id,
+                model_type: "medications",
+            };
+            await BillDetail.create(billDetail, { transaction });
         }
+
+        let pivotData = payload.medications.map(item => ({
+            medical_record_id: payload.medical_record_id,
+            medication_id: item.medication_id,
+            name: item.name,
+            dosage: item.dosage,
+            unit: item.measure, // ⚠️ Bạn đang truyền `measure` từ frontend, không phải `unit`
+            description: item.description,
+            bill_id: bill.id,
+        }));
+
+        let createdRecords = await MedicalRecordMedication.bulkCreate(pivotData, {
+            transaction,
+            returning: true,
+        });
+
+        await Bill.updateBill(bill.id, transaction);
+
+        return createdRecords.map(record => record.id);
+
+    } catch (error) {
+        console.error("🚨 Lỗi trong createPivotMedication:", error);
+        throw error;
     }
+}
+
     
     
     

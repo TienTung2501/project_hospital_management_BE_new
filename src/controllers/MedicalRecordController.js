@@ -34,7 +34,7 @@ class MedicalRecordController {
           
             //http://localhost:8000/api/medicalRecords/waitDiagnosis?date=2025-03-16 nếu truyền vào date
             //http://localhost:8000/api/medicalRecords/list?date=2025-03-16 nếu truyền vào date
-            // whereCondition.visit_date = { [Op.between]: [dayStart, dayEnd] };
+            whereCondition.visit_date = { [Op.between]: [dayStart, dayEnd] };
             
             if(room_id !== undefined&& statusValue === 1) whereCondition.room_id=room_id;
             if (id !== undefined) whereCondition.id = id;
@@ -127,6 +127,112 @@ class MedicalRecordController {
         }
     }
     async index(req, res) {
+        const { keyword, status, limit = 1, room_id,user_inpatient_id,room_inpatient_id,date } = req.query;
+
+        const whereCondition = {};
+        // if (status) whereCondition.status = status;
+        if (room_id) whereCondition.room_id = room_id;
+        if (status) whereCondition.status = status;
+           // Lấy ngày hôm nay theo chuẩn UTC (00:00:00 - 23:59:59)
+        const selectedDate = date ? moment.utc(date, "YYYY-MM-DD") : moment.utc();
+        // Lấy khoảng thời gian từ 00:00:00 - 23:59:59 của ngày đã chọn
+        const dayStart = selectedDate.startOf("day").toISOString(); // 2025-03-20T00:00:00.000Z
+        const dayEnd = selectedDate.endOf("day").toISOString();   // 2025-03-20T23:59:59.999Z
+        //http://localhost:8000/api/medicalRecords/waitDiagnosis?date=2025-03-16 nếu truyền vào date
+        //http://localhost:8000/api/medicalRecords/list?date=2025-03-16 nếu truyền vào date
+        whereCondition.visit_date = { [Op.between]: [dayStart, dayEnd] };
+        const options = {
+            where: whereCondition,
+            limit,
+            order: [['visit_date', 'ASC']],
+            relations: [
+                { 
+                    model: Patient, 
+                    as: 'patients' ,
+                    where: keyword
+                    ? {
+                        [Op.or]: [
+                            { name: { [Op.like]: `%${keyword}%` } },
+                            { cccd_number: { [Op.like]: `%${keyword}%` } },
+                            { phone: { [Op.like]: `%${keyword}%` } }
+                        ]
+                        }
+                    : undefined,
+                    required: true,
+
+                },
+                { model: User, as: "users" },
+                { 
+                    model: MedicalRecordServiceModel, 
+                    as: "medical_record_service", 
+                    include: [{ 
+                        model: Service, 
+                        as: "services" 
+                    }],
+                    required: false, 
+                },
+                { 
+                    model: MedicalRecordMedication, 
+                    as: "medical_record_medication", 
+                    include: [{ 
+                        model: Medication, 
+                        as: "medications" 
+                    }],
+                    required: false, 
+                },
+                { 
+                    model: TreatmentSession, 
+                    as: "treatment_sessions",
+                    where: {
+                        ...(room_inpatient_id !== undefined && { room_id: room_inpatient_id }),
+                        ...(user_inpatient_id !== undefined && { user_id: user_inpatient_id })
+                      },
+                      
+                      
+                    include: [
+                        { model: Bed, as: "beds" },
+                        { model: User, as: "users" },
+                        { model: Department, as: "departments" },
+                        { model: Room, as: "rooms" },
+                        { 
+                            model: MedicalOrder, 
+                            as: "medical_orders" 
+                        },
+                        { 
+                            model: DailyHealth, 
+                            as: "daily_healths" 
+                        },
+                        { 
+                            model: AdvancePayment, 
+                            as: "advance_payments" 
+                        }
+                    ], 
+                    required: false, 
+                },
+            ],
+        };
+        
+        const medicalRecords = await medicalRecordService.paginate(options);
+        if (medicalRecords.rows.length > 0) {
+            return res.status(200).json({
+                status: 200,
+                message: 'Success',
+                data: {
+                    data: medicalRecords.rows,
+                    total: medicalRecords.rows.length,
+                }
+            });
+        } else {
+            return res.status(204).json({
+                status: 204,
+                message: 'No Data'
+            });
+        }
+    } catch (error) {
+        console.error('Error in index:', error);
+        return res.status(500).json({ status: 500, message: 'Server Error' });
+    }
+    async showAdvance(req, res) {
         const { keyword, status, limit = 1, room_id,user_inpatient_id,room_inpatient_id,date } = req.query;
 
         const whereCondition = {};
@@ -256,8 +362,8 @@ class MedicalRecordController {
         try {
             const medicalRecord = await medicalRecordService.create(req.body);
 
-            return res.status(medicalRecord ? 201 : 500).json({
-                status: medicalRecord ? 201 : 500,
+            return res.status(medicalRecord ? 200 : 500).json({
+                status: medicalRecord ? 200 : 500,
                 message: medicalRecord ? 'created' : 'server error',
                 data: medicalRecord,
             });
@@ -268,7 +374,7 @@ class MedicalRecordController {
 
     async createPivot(req, res) {
         try {
-            const pivotIds = await medicalRecordService.createPivot(req.body);
+            const pivotIds = await medicalRecordService.createPivotService(req.body);
     
             if (pivotIds.length > 0) {
                 return res.status(200).json({
